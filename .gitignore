@@ -18,6 +18,9 @@ bin/
 ### VS Code ###
 .vscode/
 
+### Claude Code ###
+.claude/
+
 ### Mac/Windows ###
 .DS_Store
 Thumbs.db
