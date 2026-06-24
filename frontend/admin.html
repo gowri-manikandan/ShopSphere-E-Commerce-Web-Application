@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Manage products, catalog categories, and update customer order status entries on ShopSphere.">
+    <title>Admin Dashboard — ShopSphere</title>
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Shared Navigation Bar -->
+    <header id="navbar-container"></header>
+
+    <!-- Main Content Area -->
+    <main class="container">
+        
+        <div class="admin-header">
+            <h2 style="font-size: 28px; font-weight: 800;">Admin Dashboard</h2>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <div class="admin-tabs">
+            <button class="admin-tab-btn active" data-tab-target="products-panel">Products</button>
+            <button class="admin-tab-btn" data-tab-target="categories-panel">Categories</button>
+            <button class="admin-tab-btn" data-tab-target="orders-panel">Orders</button>
+        </div>
+
+        <!-- ==========================================
+             Products Management Panel
+             ========================================== -->
+        <section id="products-panel" class="admin-tab-panel active">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                <h3 class="section-title">Manage Products</h3>
+                <button class="btn btn-primary btn-sm" id="admin-add-product-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" width="14" height="14">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    Add Product
+                </button>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-products-tbody">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             Categories Management Panel
+             ========================================== -->
+        <section id="categories-panel" class="admin-tab-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                <h3 class="section-title">Manage Categories</h3>
+                <button class="btn btn-primary btn-sm" id="admin-add-category-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" width="14" height="14">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    Add Category
+                </button>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-categories-tbody">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             Orders Management Panel
+             ========================================== -->
+        <section id="orders-panel" class="admin-tab-panel">
+            <div style="margin-bottom: 20px;">
+                <h3 class="section-title">Manage Client Orders</h3>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Grand Total</th>
+                            <th>Payment</th>
+                            <th>Status Action</th>
+                            <th>Transaction Ref</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-orders-tbody">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        
+    </main>
+
+    <!-- Main JavaScript Logic -->
+    <script type="module" src="js/admin.js"></script>
+</body>
+</html>

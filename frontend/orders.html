@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="View your order history, delivery status, and invoice summaries on ShopSphere.">
+    <title>My Orders — ShopSphere</title>
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Shared Navigation Bar -->
+    <header id="navbar-container"></header>
+
+    <!-- Main Content Area -->
+    <main class="container">
+        <h2 style="font-size: 28px; font-weight: 800; margin-bottom: 30px;">My Orders</h2>
+        
+        <!-- Orders list container -->
+        <div id="orders-list" class="orders-list">
+            <!-- Loading states will show here -->
+            <p class="loader-text">Loading your order history...</p>
+        </div>
+
+        <!-- Empty Orders State -->
+        <div id="empty-orders-state" class="empty-state" style="display: none;">
+            <div class="empty-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="64" height="64">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15m0 0l6.75-6.75M4.5 12l6.75 6.75" />
+                </svg>
+            </div>
+            <h3 class="empty-title">No orders placed yet</h3>
+            <p class="empty-desc">You haven't placed any orders on ShopSphere yet. Browse our catalog to find products and place your first order.</p>
+            <a href="index.html" class="btn btn-primary">Browse Catalog</a>
+        </div>
+    </main>
+
+    <!-- Main JavaScript Logic -->
+    <script type="module" src="js/orders.js"></script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Select shipping address, payment method, and complete checkout on ShopSphere.">
+    <title>Checkout — ShopSphere</title>
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Shared Navigation Bar -->
+    <header id="navbar-container"></header>
+
+    <!-- Main Content Area -->
+    <main class="container">
+        <h2 style="font-size: 28px; font-weight: 800; margin-bottom: 30px;">Checkout</h2>
+        
+        <div class="checkout-layout">
+            
+            <!-- Left Side: Shipping & Payments details -->
+            <div style="display: flex; flex-direction: column; gap: 24px;">
+                
+                <!-- Address Section -->
+                <section class="address-section">
+                    <div class="section-header">
+                        <h3 class="section-title">Shipping Address</h3>
+                        <button class="btn btn-secondary btn-sm" id="add-address-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" width="14" height="14">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                            Add Address
+                        </button>
+                    </div>
+                    
+                    <div id="address-grid" class="address-grid">
+                        <!-- Addresses dynamically loaded here -->
+                        <p class="loader-text">Loading addresses...</p>
+                    </div>
+                </section>
+                
+                <!-- Payment Section -->
+                <section class="payment-section">
+                    <h3 class="section-title" style="margin-bottom: 20px;">Payment Method</h3>
+                    
+                    <div class="payment-grid">
+                        <label class="payment-option selected" data-payment-method="CARD">
+                            <input type="radio" name="payment-method-radio" value="CARD" checked style="accent-color: var(--primary);">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-19.5 8.25h20.25a.75.75 0 00.75-.75V6.108a.75.75 0 00-.75-.75H1.95a.75.75 0 00-.75.75v10.142c0 .414.336.75.75.75zm3-3h3m2.25 0h3m-9-3h.008v.008H3.75V11.25zm.008 2.25H3.75v.008h.008v-.008zm10.5-2.25h.008v.008h-.008V11.25zm.008 2.25h-.008v.008h.008v-.008z" />
+                            </svg>
+                            Credit / Debit Card
+                        </label>
+                        
+                        <label class="payment-option" data-payment-method="UPI">
+                            <input type="radio" name="payment-method-radio" value="UPI" style="accent-color: var(--primary);">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                            </svg>
+                            UPI / NetBanking
+                        </label>
+                        
+                        <label class="payment-option" data-payment-method="COD">
+                            <input type="radio" name="payment-method-radio" value="COD" style="accent-color: var(--primary);">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125H3M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM18 15a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                            </svg>
+                            Cash on Delivery (COD)
+                        </label>
+                        
+                        <label class="payment-option" data-payment-method="NETBANKING">
+                            <input type="radio" name="payment-method-radio" value="NETBANKING" style="accent-color: var(--primary);">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.5H4.5V21m-2.25 0h19.5" />
+                            </svg>
+                            Net Banking
+                        </label>
+                    </div>
+                </section>
+                
+            </div>
+            
+            <!-- Right Side: Order Review panel -->
+            <div class="cart-summary-panel">
+                <h3 class="summary-title">Order Summary</h3>
+                
+                <!-- Items list preview -->
+                <div id="checkout-items-preview" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); max-height: 240px; overflow-y: auto;">
+                    <!-- Dynamically loaded preview items -->
+                </div>
+                
+                <div class="summary-row">
+                    <span id="checkout-items-count">Subtotal (0 items)</span>
+                    <span id="checkout-subtotal-val">₹0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Shipping</span>
+                    <span style="color: var(--success); font-weight: 600;">FREE</span>
+                </div>
+                <div class="summary-row grand-total">
+                    <span>Grand Total</span>
+                    <span id="checkout-grand-total-val">₹0.00</span>
+                </div>
+                
+                <button class="btn btn-primary checkout-btn" id="place-order-btn" style="margin-top: 24px;">
+                    Place Order
+                </button>
+            </div>
+            
+        </div>
+    </main>
+
+    <!-- Main JavaScript Logic -->
+    <script type="module" src="js/checkout.js"></script>
+</body>
+</html>

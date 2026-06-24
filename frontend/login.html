@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sign in to your ShopSphere account.">
+    <title>Login — ShopSphere</title>
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Shared Navigation Bar -->
+    <header id="navbar-container"></header>
+
+    <main class="auth-wrapper">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h2 class="auth-title">Welcome Back</h2>
+                <p class="auth-subtitle">Sign in to your ShopSphere account to continue</p>
+            </div>
+            
+            <form id="login-form" novalidate>
+                <!-- Email Field -->
+                <div class="form-group" id="email-group">
+                    <label for="email-input" class="form-label">Email Address</label>
+                    <input type="email" id="email-input" class="form-control" placeholder="name@example.com" required>
+                    <span class="form-error-msg" id="email-error">Please enter a valid email address.</span>
+                </div>
+                
+                <!-- Password Field -->
+                <div class="form-group" id="password-group">
+                    <label for="password-input" class="form-label">Password</label>
+                    <input type="password" id="password-input" class="form-control" placeholder="••••••••" required>
+                    <span class="form-error-msg" id="password-error">Password is required.</span>
+                </div>
+                
+                <!-- Submit -->
+                <button type="submit" class="btn btn-primary" id="submit-btn" style="width: 100%; height: 44px; margin-top: 10px;">
+                    Sign In
+                </button>
+            </form>
+            
+            <div class="auth-redirect">
+                Don't have an account? <a href="register.html">Register here</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Script Logic -->
+    <script type="module">
+        import { auth } from './js/auth.js';
+        import { showToast, showLoader, hideLoader } from './js/ui.js';
+
+        const loginForm = document.getElementById('login-form');
+        const emailInput = document.getElementById('email-input');
+        const passwordInput = document.getElementById('password-input');
+        const emailGroup = document.getElementById('email-group');
+        const passwordGroup = document.getElementById('password-group');
+        const submitBtn = document.getElementById('submit-btn');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Reset validation states
+            emailGroup.classList.remove('has-error');
+            passwordGroup.classList.remove('has-error');
+
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            
+            let isValid = true;
+            
+            // Client side validation
+            if (!email || !/\S+@\S+\.\S+/.test(email)) {
+                emailGroup.classList.add('has-error');
+                isValid = false;
+            }
+            
+            if (!password) {
+                passwordGroup.classList.add('has-error');
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            try {
+                submitBtn.disabled = true;
+                showLoader();
+                
+                const response = await auth.login(email, password);
+                showToast(`Welcome back, ${response.name}!`, 'success');
+                
+                // Parse redirect target or send to home catalog
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirectPath = urlParams.get('redirect');
+                
+                setTimeout(() => {
+                    if (redirectPath) {
+                        window.location.href = decodeURIComponent(redirectPath);
+                    } else {
+                        window.location.href = 'index.html';
+                    }
+                }, 800);
+                
+            } catch (err) {
+                console.error(err);
+                
+                // Display server validation/auth errors
+                if (err.details && err.details.fieldErrors) {
+                    const fields = err.details.fieldErrors;
+                    if (fields.email) {
+                        document.getElementById('email-error').textContent = fields.email;
+                        emailGroup.classList.add('has-error');
+                    }
+                    if (fields.password) {
+                        document.getElementById('password-error').textContent = fields.password;
+                        passwordGroup.classList.add('has-error');
+                    }
+                }
+                
+                showToast(err.message || 'Login failed. Please verify credentials.', 'error');
+                submitBtn.disabled = false;
+                hideLoader();
+            }
+        });
+    </script>
+</body>
+</html>

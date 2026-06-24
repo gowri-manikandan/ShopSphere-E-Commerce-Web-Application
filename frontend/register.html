@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Create a new ShopSphere account.">
+    <title>Register — ShopSphere</title>
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Shared Navigation Bar -->
+    <header id="navbar-container"></header>
+
+    <main class="auth-wrapper">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h2 class="auth-title">Create Account</h2>
+                <p class="auth-subtitle">Join ShopSphere today to start shopping</p>
+            </div>
+            
+            <form id="register-form" novalidate>
+                <!-- Name Field -->
+                <div class="form-group" id="name-group">
+                    <label for="name-input" class="form-label">Full Name</label>
+                    <input type="text" id="name-input" class="form-control" placeholder="John Doe" required>
+                    <span class="form-error-msg" id="name-error">Please enter your full name.</span>
+                </div>
+
+                <!-- Email Field -->
+                <div class="form-group" id="email-group">
+                    <label for="email-input" class="form-label">Email Address</label>
+                    <input type="email" id="email-input" class="form-control" placeholder="name@example.com" required>
+                    <span class="form-error-msg" id="email-error">Please enter a valid email address.</span>
+                </div>
+                
+                <!-- Password Field -->
+                <div class="form-group" id="password-group">
+                    <label for="password-input" class="form-label">Password</label>
+                    <input type="password" id="password-input" class="form-control" placeholder="••••••••" required>
+                    <span class="form-error-msg" id="password-error">Password must be at least 6 characters.</span>
+                </div>
+
+                <!-- Confirm Password Field -->
+                <div class="form-group" id="confirm-group">
+                    <label for="confirm-input" class="form-label">Confirm Password</label>
+                    <input type="password" id="confirm-input" class="form-control" placeholder="••••••••" required>
+                    <span class="form-error-msg" id="confirm-error">Passwords do not match.</span>
+                </div>
+                
+                <!-- Submit -->
+                <button type="submit" class="btn btn-primary" id="submit-btn" style="width: 100%; height: 44px; margin-top: 10px;">
+                    Register Now
+                </button>
+            </form>
+            
+            <div class="auth-redirect">
+                Already have an account? <a href="login.html">Sign in here</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Script Logic -->
+    <script type="module">
+        import { auth } from './js/auth.js';
+        import { showToast, showLoader, hideLoader } from './js/ui.js';
+
+        const registerForm = document.getElementById('register-form');
+        const nameInput = document.getElementById('name-input');
+        const emailInput = document.getElementById('email-input');
+        const passwordInput = document.getElementById('password-input');
+        const confirmInput = document.getElementById('confirm-input');
+
+        const nameGroup = document.getElementById('name-group');
+        const emailGroup = document.getElementById('email-group');
+        const passwordGroup = document.getElementById('password-group');
+        const confirmGroup = document.getElementById('confirm-group');
+        const submitBtn = document.getElementById('submit-btn');
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Reset validation states
+            nameGroup.classList.remove('has-error');
+            emailGroup.classList.remove('has-error');
+            passwordGroup.classList.remove('has-error');
+            confirmGroup.classList.remove('has-error');
+
+            const name = nameInput.value.trim();
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const confirm = confirmInput.value;
+            
+            let isValid = true;
+            
+            // Client side validation
+            if (!name) {
+                nameGroup.classList.add('has-error');
+                isValid = false;
+            }
+
+            if (!email || !/\S+@\S+\.\S+/.test(email)) {
+                emailGroup.classList.add('has-error');
+                isValid = false;
+            }
+            
+            if (!password || password.length < 6) {
+                passwordGroup.classList.add('has-error');
+                isValid = false;
+            }
+
+            if (password !== confirm) {
+                confirmGroup.classList.add('has-error');
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            try {
+                submitBtn.disabled = true;
+                showLoader();
+                
+                const response = await auth.register(name, email, password);
+                showToast(`Account created successfully! Welcome, ${response.name}!`, 'success');
+                
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+                
+            } catch (err) {
+                console.error(err);
+                
+                // Display server validation errors
+                if (err.details && err.details.fieldErrors) {
+                    const fields = err.details.fieldErrors;
+                    if (fields.name) {
+                        document.getElementById('name-error').textContent = fields.name;
+                        nameGroup.classList.add('has-error');
+                    }
+                    if (fields.email) {
+                        document.getElementById('email-error').textContent = fields.email;
+                        emailGroup.classList.add('has-error');
+                    }
+                    if (fields.password) {
+                        document.getElementById('password-error').textContent = fields.password;
+                        passwordGroup.classList.add('has-error');
+                    }
+                }
+                
+                showToast(err.message || 'Registration failed. Email might already exist.', 'error');
+                submitBtn.disabled = false;
+                hideLoader();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Product details, pricing, reviews, and stock quantity on ShopSphere.">
+    <title>Product Details — ShopSphere</title>
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Shared Navigation Bar -->
+    <header id="navbar-container"></header>
+
+    <!-- Main Content Area -->
+    <main class="container">
+        <!-- Back Link -->
+        <div style="margin-bottom: 24px;">
+            <a href="index.html" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--primary);">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" width="16" height="16">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+                Back to Catalog
+            </a>
+        </div>
+
+        <!-- Product Details Layout -->
+        <div class="details-container" id="product-details-container">
+            <!-- Skeletons loaded on startup -->
+            <div class="skeleton-image skeleton" style="height: 450px; border-radius: var(--radius-xl);"></div>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div class="skeleton" style="height: 20px; width: 30%;"></div>
+                <div class="skeleton" style="height: 48px; width: 80%;"></div>
+                <div class="skeleton" style="height: 24px; width: 40%;"></div>
+                <div class="skeleton" style="height: 120px; width: 100%;"></div>
+                <div class="skeleton" style="height: 48px; width: 60%;"></div>
+            </div>
+        </div>
+
+        <!-- Reviews Block -->
+        <section class="reviews-section">
+            <div class="reviews-header">
+                <h3 class="section-title">Customer Reviews</h3>
+            </div>
+            
+            <div class="reviews-container">
+                <!-- Left: List of Reviews -->
+                <div id="reviews-list" class="review-list">
+                    <!-- Loaded dynamically -->
+                    <p class="loader-text">Loading reviews...</p>
+                </div>
+                
+                <!-- Right: Write a Review Form -->
+                <div class="review-form-card" id="write-review-card" style="display: none;">
+                    <h4 class="review-form-title">Write a Customer Review</h4>
+                    <form id="review-form">
+                        <div class="form-group">
+                            <label class="form-label">Rating</label>
+                            <div class="rating-select" id="rating-select">
+                                <span class="star-option" data-star-value="1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="32" height="32">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499c.176-.427.772-.427.948 0l3.07 6.183 6.795.774c.48.055.67.64.322.98l-4.916 4.8 1.166 6.779c.082.48-.42.876-.843.629L12 17.657l-6.07 3.197c-.423.247-.925-.149-.843-.629l1.166-6.779-4.916-4.8c-.347-.34-.157-.924.322-.98l6.795-.774 3.07-6.183z" />
+                                    </svg>
+                                </span>
+                                <span class="star-option" data-star-value="2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="32" height="32">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499c.176-.427.772-.427.948 0l3.07 6.183 6.795.774c.48.055.67.64.322.98l-4.916 4.8 1.166 6.779c.082.48-.42.876-.843.629L12 17.657l-6.07 3.197c-.423.247-.925-.149-.843-.629l1.166-6.779-4.916-4.8c-.347-.34-.157-.924.322-.98l6.795-.774 3.07-6.183z" />
+                                    </svg>
+                                </span>
+                                <span class="star-option" data-star-value="3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="32" height="32">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499c.176-.427.772-.427.948 0l3.07 6.183 6.795.774c.48.055.67.64.322.98l-4.916 4.8 1.166 6.779c.082.48-.42.876-.843.629L12 17.657l-6.07 3.197c-.423.247-.925-.149-.843-.629l1.166-6.779-4.916-4.8c-.347-.34-.157-.924.322-.98l6.795-.774 3.07-6.183z" />
+                                    </svg>
+                                </span>
+                                <span class="star-option" data-star-value="4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="32" height="32">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499c.176-.427.772-.427.948 0l3.07 6.183 6.795.774c.48.055.67.64.322.98l-4.916 4.8 1.166 6.779c.082.48-.42.876-.843.629L12 17.657l-6.07 3.197c-.423.247-.925-.149-.843-.629l1.166-6.779-4.916-4.8c-.347-.34-.157-.924.322-.98l6.795-.774 3.07-6.183z" />
+                                    </svg>
+                                </span>
+                                <span class="star-option" data-star-value="5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="32" height="32">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499c.176-.427.772-.427.948 0l3.07 6.183 6.795.774c.48.055.67.64.322.98l-4.916 4.8 1.166 6.779c.082.48-.42.876-.843.629L12 17.657l-6.07 3.197c-.423.247-.925-.149-.843-.629l1.166-6.779-4.916-4.8c-.347-.34-.157-.924.322-.98l6.795-.774 3.07-6.183z" />
+                                    </svg>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="review-comment-input" class="form-label">Review Comment</label>
+                            <textarea id="review-comment-input" class="form-control" rows="4" placeholder="Share your experience with this product..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Review</button>
+                    </form>
+                </div>
+                
+                <!-- Review Prompt (if guest) -->
+                <div class="review-form-card" id="review-login-prompt" style="display: none; text-align: center;">
+                    <h4 class="review-form-title">Write a Customer Review</h4>
+                    <p class="empty-desc">Please log in to your account to review this product and share your thoughts with other customers.</p>
+                    <a href="login.html" class="btn btn-primary" style="width: 100%;">Login to Write Review</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Main JavaScript Logic -->
+    <script type="module" src="js/product.js"></script>
+</body>
+</html>

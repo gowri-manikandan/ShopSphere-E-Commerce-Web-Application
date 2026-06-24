@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="View items, adjust quantities, and clear your shopping cart on ShopSphere.">
+    <title>Your Shopping Cart — ShopSphere</title>
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Shared Navigation Bar -->
+    <header id="navbar-container"></header>
+
+    <!-- Main Content Area -->
+    <main class="container">
+        <h2 style="font-size: 28px; font-weight: 800; margin-bottom: 30px;">Shopping Cart</h2>
+        
+        <!-- Cart Layout Wrapper -->
+        <div class="cart-layout" id="cart-content-wrapper" style="display: none;">
+            
+            <!-- Left Panel: Items List -->
+            <div class="cart-items-panel">
+                <div class="cart-table-header">
+                    <span>Product</span>
+                    <span>Price</span>
+                    <span>Quantity</span>
+                    <span>Subtotal</span>
+                    <span></span>
+                </div>
+                
+                <!-- Cart Items Container -->
+                <div id="cart-items-container">
+                    <!-- Loaded dynamically -->
+                </div>
+                
+                <div class="cart-panel-footer">
+                    <a href="index.html" class="btn btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" width="16" height="16">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                        </svg>
+                        Continue Shopping
+                    </a>
+                    <button class="btn btn-danger" id="clear-cart-btn">Clear Cart</button>
+                </div>
+            </div>
+            
+            <!-- Right Panel: Summary -->
+            <div class="cart-summary-panel">
+                <h3 class="summary-title">Order Summary</h3>
+                <div class="summary-row">
+                    <span id="summary-items-count">Subtotal (0 items)</span>
+                    <span id="summary-subtotal-val">₹0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Shipping</span>
+                    <span style="color: var(--success); font-weight: 600;">FREE</span>
+                </div>
+                <div class="summary-row grand-total">
+                    <span>Grand Total</span>
+                    <span id="summary-grand-total-val">₹0.00</span>
+                </div>
+                
+                <button class="btn btn-primary checkout-btn" id="proceed-checkout-btn">
+                    Proceed to Checkout
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" width="16" height="16">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                </button>
+            </div>
+            
+        </div>
+
+        <!-- Empty Cart State -->
+        <div id="empty-cart-state" class="empty-state" style="display: none;">
+            <div class="empty-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="64" height="64">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                </svg>
+            </div>
+            <h3 class="empty-title">Your cart is empty</h3>
+            <p class="empty-desc">You haven't added any products to your shopping cart yet. Discover our catalog and find something special.</p>
+            <a href="index.html" class="btn btn-primary">Start Shopping</a>
+        </div>
+    </main>
+
+    <!-- Main JavaScript Logic -->
+    <script type="module" src="js/cart.js"></script>
+</body>
+</html>
