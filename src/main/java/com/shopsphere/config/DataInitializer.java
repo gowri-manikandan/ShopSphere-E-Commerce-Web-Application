@@ -42,8 +42,16 @@ public class DataInitializer implements CommandLineRunner {
                     .email("admin@shopsphere.com")
                     .password(passwordEncoder.encode("admin123"))
                     .role(Role.ADMIN)
+                    .emailVerified(true)
                     .build();
             userRepository.save(admin);
+        } else {
+            userRepository.findByEmail("admin@shopsphere.com").ifPresent(admin -> {
+                if (!admin.isEmailVerified()) {
+                    admin.setEmailVerified(true);
+                    userRepository.save(admin);
+                }
+            });
         }
     }
 
@@ -65,6 +73,11 @@ public class DataInitializer implements CommandLineRunner {
                 .price(new BigDecimal("2499.00"))
                 .stockQuantity(50)
                 .imageUrl("https://via.placeholder.com/300?text=Headphones")
+                .additionalImages(java.util.Arrays.asList(
+                    "https://via.placeholder.com/300?text=Headphones+1",
+                    "https://via.placeholder.com/300?text=Headphones+2",
+                    "https://via.placeholder.com/300?text=Headphones+3"
+                ))
                 .category(electronics)
                 .build());
 
@@ -74,6 +87,10 @@ public class DataInitializer implements CommandLineRunner {
                 .price(new BigDecimal("18999.00"))
                 .stockQuantity(30)
                 .imageUrl("https://via.placeholder.com/300?text=Smartphone")
+                .additionalImages(java.util.Arrays.asList(
+                    "https://via.placeholder.com/300?text=Smartphone+1",
+                    "https://via.placeholder.com/300?text=Smartphone+2"
+                ))
                 .category(electronics)
                 .build());
 
@@ -83,6 +100,10 @@ public class DataInitializer implements CommandLineRunner {
                 .price(new BigDecimal("499.00"))
                 .stockQuantity(100)
                 .imageUrl("https://via.placeholder.com/300?text=T-Shirt")
+                .additionalImages(java.util.Arrays.asList(
+                    "https://via.placeholder.com/300?text=T-Shirt+Front",
+                    "https://via.placeholder.com/300?text=T-Shirt+Back"
+                ))
                 .category(fashion)
                 .build());
 
@@ -92,6 +113,10 @@ public class DataInitializer implements CommandLineRunner {
                 .price(new BigDecimal("799.00"))
                 .stockQuantity(40)
                 .imageUrl("https://via.placeholder.com/300?text=Book")
+                .additionalImages(java.util.Arrays.asList(
+                    "https://via.placeholder.com/300?text=Book+Cover",
+                    "https://via.placeholder.com/300?text=Book+Inside"
+                ))
                 .category(books)
                 .build());
     }

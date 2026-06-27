@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -56,6 +57,15 @@ public class GlobalExceptionHandler {
         body.put("path", request.getRequestURI());
         body.put("fieldErrors", fieldErrors);
         return ResponseEntity.badRequest().body(body);
+    }
+
+    // Wrong HTTP method (e.g. opening a POST-only endpoint in the browser address bar)
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex,
+                                                                  HttpServletRequest request) {
+        String msg = "HTTP method '" + ex.getMethod() + "' is not supported for this endpoint. "
+                + "Supported: " + ex.getSupportedHttpMethods();
+        return build(HttpStatus.METHOD_NOT_ALLOWED, msg, request);
     }
 
     // Fallback for any other unexpected error

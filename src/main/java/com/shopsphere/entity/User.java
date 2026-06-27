@@ -31,11 +31,43 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role;
 
+    @Column(name = "profile_image_url", length = 500)
+    private String profileImageUrl;
+
+    @Column(name = "email_verified", nullable = false)
+    @Builder.Default
+    private boolean emailVerified = false;
+
+    @Column(name = "verification_otp_secure", length = 100)
+    private String verificationOtp;
+
+    @Column(name = "verification_otp_expiry")
+    private LocalDateTime verificationOtpExpiry;
+
+    @Column(name = "otp_verification_attempts")
+    @Builder.Default
+    private Integer otpVerificationAttempts = 0;
+
+    @Column(name = "otp_resend_attempts")
+    @Builder.Default
+    private Integer otpResendAttempts = 0;
+
+    @Column(name = "last_otp_requested_at")
+    private LocalDateTime lastOtpRequestedAt;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
     void onCreate() {
         createdAt = LocalDateTime.now();
+    }
+
+    public int getOtpVerificationAttempts() {
+        return otpVerificationAttempts != null ? otpVerificationAttempts : 0;
+    }
+
+    public int getOtpResendAttempts() {
+        return otpResendAttempts != null ? otpResendAttempts : 0;
     }
 }

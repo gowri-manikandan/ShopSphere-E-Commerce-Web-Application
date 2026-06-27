@@ -7,6 +7,432 @@
     <title>Login — ShopSphere</title>
     <!-- Stylesheet -->
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* Premium Glassmorphic design variables and components */
+        .auth-wrapper {
+            position: relative;
+            min-height: calc(100vh - 120px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 40px 20px;
+        }
+        
+        /* Animated Glowing Blobs in Background */
+        .auth-bg-blobs {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.15;
+            animation: floatBlobs 20s infinite alternate ease-in-out;
+        }
+        
+        .blob-1 {
+            width: 320px;
+            height: 320px;
+            background-color: var(--primary);
+            top: 15%;
+            left: 10%;
+        }
+        
+        .blob-2 {
+            width: 280px;
+            height: 280px;
+            background-color: #ec4899;
+            bottom: 15%;
+            right: 10%;
+            animation-delay: -5s;
+        }
+        
+        @keyframes floatBlobs {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(50px, -50px) scale(1.25); }
+        }
+        
+        /* Glassmorphism Card Style */
+        .glass-card {
+            position: relative;
+            z-index: 1;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px) saturate(190%);
+            -webkit-backdrop-filter: blur(20px) saturate(190%);
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            box-shadow: 
+                0 20px 40px -15px rgba(15, 23, 42, 0.08), 
+                0 0 50px 0 rgba(79, 70, 229, 0.04);
+            border-radius: var(--radius-xl);
+            padding: 40px;
+            width: 100%;
+            max-width: 460px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 25px 50px -12px rgba(15, 23, 42, 0.12), 
+                0 0 60px 0 rgba(79, 70, 229, 0.06);
+        }
+        
+        /* Inputs Layout & Styles */
+        .form-control {
+            border-radius: 9999px; /* Rounded fields */
+            padding: 10px 20px;
+            border: 1px solid var(--border-color);
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+            background: rgba(255, 255, 255, 0.9);
+            width: 100%;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+            outline: none;
+            background: #ffffff;
+        }
+        
+        .form-control:disabled {
+            background-color: #e2e8f0;
+            color: #64748b;
+            cursor: not-allowed;
+            border-color: #cbd5e1;
+        }
+        
+        /* Inline Send OTP layout */
+        .email-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .email-input-wrapper .form-control {
+            flex: 1;
+        }
+        
+        .email-input-wrapper button {
+            border-radius: 9999px;
+            white-space: nowrap;
+            padding: 0 20px;
+            height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-card);
+            color: var(--text-main);
+            transition: all var(--transition-fast);
+        }
+        
+        .email-input-wrapper button:hover:not(:disabled) {
+            background-color: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+        
+        .email-input-wrapper button:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        /* Spinner animation */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 0.8s linear infinite;
+        }
+        
+        .btn-spinner {
+            border-top-color: currentColor;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* OTP inputs */
+        .otp-inputs-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin: 15px 0;
+        }
+        
+        .otp-box {
+            width: 48px;
+            height: 48px;
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.95);
+            transition: all 0.2s ease;
+        }
+        
+        .otp-box:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+            outline: none;
+        }
+        
+        .otp-action-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+        }
+        
+        .otp-timer-container {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        
+        .btn-xs {
+            padding: 2px 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary);
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        
+        .btn-xs:hover {
+            color: var(--primary-hover);
+        }
+        
+        /* Password field & Toggle eye button */
+        .password-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .password-input-wrapper .form-control {
+            width: 100%;
+            padding-right: 50px;
+        }
+        
+        .toggle-password-btn {
+            position: absolute;
+            right: 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px;
+            transition: color var(--transition-fast), transform 0.2s ease;
+        }
+        
+        .toggle-password-btn:hover {
+            color: var(--primary);
+            transform: scale(1.1);
+        }
+        
+        /* Password Strength Meter */
+        .strength-progress-bar {
+            height: 6px;
+            background-color: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        
+        .strength-progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 3px;
+            transition: width var(--transition-normal), background-color var(--transition-normal);
+        }
+        
+        .strength-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        
+        .strength-lbl-text {
+            color: var(--text-muted);
+        }
+        
+        .strength-lbl-level {
+            transition: color var(--transition-normal);
+        }
+        
+        .strength-checklist {
+            margin-top: 8px;
+            font-size: 12px;
+            padding-left: 0;
+            list-style: none;
+        }
+        
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            font-weight: 500;
+            transition: color var(--transition-normal);
+        }
+        
+        .checklist-item.valid {
+            color: var(--success);
+        }
+        
+        .checklist-item.invalid {
+            color: var(--danger);
+        }
+        
+        .check-icon {
+            font-size: 11px;
+            font-weight: bold;
+            display: inline-block;
+            width: 14px;
+            text-align: center;
+        }
+        
+        /* Remember Me & Forgot Password Row */
+        .remember-forgot-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        
+        .remember-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+        
+        .remember-checkbox {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+        
+        .forgot-password-link {
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .forgot-password-link:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+        
+        /* Verify OTP Success Animation */
+        .success-checkmark-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 15px 0;
+            animation: fadeIn 0.4s ease forwards;
+        }
+        
+        .checkmark-circle {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--success-light);
+            border: 2px solid var(--success);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--success);
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        
+        .checkmark-text {
+            color: var(--success);
+            font-weight: 700;
+            font-size: 14px;
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.1); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Button Hover/Ripple styles */
+        .btn {
+            border-radius: 9999px;
+            font-family: var(--font-heading);
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+            background-color: var(--primary-hover);
+        }
+        
+        .btn-primary:disabled {
+            background-color: #cbd5e1;
+            border-color: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+        
+        .btn-sm {
+            height: 36px;
+            padding: 0 16px;
+            font-size: 13px;
+        }
+    </style>
 </head>
 <body>
 
@@ -14,7 +440,13 @@
     <header id="navbar-container"></header>
 
     <main class="auth-wrapper">
-        <div class="auth-card">
+        <!-- Blur shape background -->
+        <div class="auth-bg-blobs">
+            <div class="blob blob-1"></div>
+            <div class="blob blob-2"></div>
+        </div>
+
+        <div class="auth-card glass-card">
             <div class="auth-header">
                 <h2 class="auth-title">Welcome Back</h2>
                 <p class="auth-subtitle">Sign in to your ShopSphere account to continue</p>
@@ -24,20 +456,106 @@
                 <!-- Email Field -->
                 <div class="form-group" id="email-group">
                     <label for="email-input" class="form-label">Email Address</label>
-                    <input type="email" id="email-input" class="form-control" placeholder="name@example.com" required>
+                    <div class="email-input-wrapper">
+                        <input type="email" id="email-input" class="form-control" placeholder="name@example.com" required autocomplete="email">
+                        <button type="button" id="send-otp-btn">
+                            <span class="btn-text">Send OTP</span>
+                            <span class="spinner btn-spinner" style="display: none;"></span>
+                        </button>
+                    </div>
                     <span class="form-error-msg" id="email-error">Please enter a valid email address.</span>
+                </div>
+
+                <!-- OTP Section -->
+                <div class="form-group" id="otp-section" style="display: none; opacity: 0; transform: translateY(-10px); transition: all 0.4s ease;">
+                    <label class="form-label" style="margin-top: 12px;">Enter OTP</label>
+                    <div class="otp-inputs-container">
+                        <input type="text" class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" id="otp-1">
+                        <input type="text" class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" id="otp-2">
+                        <input type="text" class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" id="otp-3">
+                        <input type="text" class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" id="otp-4">
+                        <input type="text" class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" id="otp-5">
+                        <input type="text" class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" id="otp-6">
+                    </div>
+                    <div class="otp-action-row">
+                        <button type="button" class="btn btn-primary btn-sm" id="verify-otp-btn">
+                            <span class="btn-text">Verify OTP</span>
+                            <span class="spinner btn-spinner" style="display: none; border-color: #fff #fff transparent transparent;"></span>
+                        </button>
+                        <div class="otp-timer-container">
+                            <span id="countdown-timer">Resend OTP in 60s</span>
+                            <button type="button" class="btn-xs" id="resend-otp-btn" style="display: none;">Resend OTP</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Verified Animation Target -->
+                <div id="verified-checkmark-container" style="display: none;">
+                    <div class="success-checkmark-wrapper">
+                        <div class="checkmark-circle">✔</div>
+                        <div class="checkmark-text">Email Verified</div>
+                    </div>
                 </div>
                 
                 <!-- Password Field -->
                 <div class="form-group" id="password-group">
                     <label for="password-input" class="form-label">Password</label>
-                    <input type="password" id="password-input" class="form-control" placeholder="••••••••" required>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="password-input" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+                        <button type="button" class="toggle-password-btn" id="toggle-password-btn" aria-label="Toggle password visibility">
+                            <svg class="eye-icon" id="eye-open-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <svg class="eye-icon" id="eye-closed-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20" style="display: none;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                            </svg>
+                        </button>
+                    </div>
                     <span class="form-error-msg" id="password-error">Password is required.</span>
+
+                    <!-- Password Strength Meter -->
+                    <div class="strength-meter-container" style="margin-top: 10px;">
+                        <div class="strength-label-row">
+                            <span class="strength-lbl-text">Password Strength</span>
+                            <span class="strength-lbl-level" id="strength-level">Very Weak</span>
+                        </div>
+                        <div class="strength-progress-bar">
+                            <div class="strength-progress-fill" id="strength-fill"></div>
+                        </div>
+                        <ul class="strength-checklist" id="strength-checklist">
+                            <li data-requirement="length" class="checklist-item invalid">
+                                <span class="check-icon">✖</span> Minimum 8 characters
+                            </li>
+                            <li data-requirement="uppercase" class="checklist-item invalid">
+                                <span class="check-icon">✖</span> One uppercase letter
+                            </li>
+                            <li data-requirement="lowercase" class="checklist-item invalid">
+                                <span class="check-icon">✖</span> One lowercase letter
+                            </li>
+                            <li data-requirement="number" class="checklist-item invalid">
+                                <span class="check-icon">✖</span> One number
+                            </li>
+                            <li data-requirement="special" class="checklist-item invalid">
+                                <span class="check-icon">✖</span> One special character
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Remember Me & Forgot Password -->
+                <div class="remember-forgot-row">
+                    <label class="remember-checkbox-label">
+                        <input type="checkbox" id="remember-me" class="remember-checkbox">
+                        <span>Remember Me</span>
+                    </label>
+                    <a href="#" class="forgot-password-link" id="forgot-password-link">Forgot Password?</a>
                 </div>
                 
                 <!-- Submit -->
                 <button type="submit" class="btn btn-primary" id="submit-btn" style="width: 100%; height: 44px; margin-top: 10px;">
-                    Sign In
+                    <span class="submit-btn-text">Sign In</span>
+                    <span class="spinner btn-spinner" id="login-spinner" style="display: none; border-color: #fff #fff transparent transparent; margin-left: 8px;"></span>
                 </button>
             </form>
             
@@ -49,16 +567,340 @@
 
     <!-- Script Logic -->
     <script type="module">
+        import './js/navbar.js';
         import { auth } from './js/auth.js';
         import { showToast, showLoader, hideLoader } from './js/ui.js';
 
+        // DOM elements
         const loginForm = document.getElementById('login-form');
         const emailInput = document.getElementById('email-input');
         const passwordInput = document.getElementById('password-input');
         const emailGroup = document.getElementById('email-group');
         const passwordGroup = document.getElementById('password-group');
+        const sendOtpBtn = document.getElementById('send-otp-btn');
+        const verifyOtpBtn = document.getElementById('verify-otp-btn');
+        const resendOtpBtn = document.getElementById('resend-otp-btn');
+        const countdownTimer = document.getElementById('countdown-timer');
+        const otpSection = document.getElementById('otp-section');
+        const verifiedCheckmarkContainer = document.getElementById('verified-checkmark-container');
         const submitBtn = document.getElementById('submit-btn');
+        const loginSpinner = document.getElementById('login-spinner');
+        const togglePasswordBtn = document.getElementById('toggle-password-btn');
+        const eyeOpenSvg = document.getElementById('eye-open-svg');
+        const eyeClosedSvg = document.getElementById('eye-closed-svg');
 
+        // OTP inputs list
+        const otpBoxes = [
+            document.getElementById('otp-1'),
+            document.getElementById('otp-2'),
+            document.getElementById('otp-3'),
+            document.getElementById('otp-4'),
+            document.getElementById('otp-5'),
+            document.getElementById('otp-6')
+        ];
+
+        // State variables
+        let isEmailVerified = false;
+        let countdownInterval = null;
+        let countdownSeconds = 60;
+
+        // On Page Load: initialize disabled states
+        submitBtn.disabled = true;
+
+        // Remember Me checkbox loading/saving logic
+        const savedEmail = localStorage.getItem('remember_me_email');
+        if (savedEmail) {
+            emailInput.value = savedEmail;
+            document.getElementById('remember-me').checked = true;
+        }
+
+        // Email validation regex
+        function validateEmailFormat(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        // Handle Send OTP button click
+        sendOtpBtn.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
+            
+            // Validate email format
+            if (!email || !validateEmailFormat(email)) {
+                emailGroup.classList.add('has-error');
+                showToast('Please enter a valid email address.', 'error');
+                return;
+            }
+            
+            emailGroup.classList.remove('has-error');
+
+            try {
+                // Set loading state
+                sendOtpBtn.disabled = true;
+                sendOtpBtn.querySelector('.btn-text').textContent = '';
+                sendOtpBtn.querySelector('.spinner').style.display = 'inline-block';
+                
+                // Call API
+                await auth.sendOtp(email);
+                
+                showToast('OTP sent successfully.', 'success');
+                
+                // Show OTP UI section with animation
+                otpSection.style.display = 'block';
+                setTimeout(() => {
+                    otpSection.style.opacity = '1';
+                    otpSection.style.transform = 'translateY(0)';
+                    otpBoxes[0].focus();
+                }, 50);
+
+                // Disable email editing while OTP is active
+                emailInput.disabled = true;
+
+                // Start timer
+                startTimer();
+            } catch (err) {
+                console.error(err);
+                showToast(err.message || 'Failed to send OTP. Network error.', 'error');
+                
+                // Reset states
+                sendOtpBtn.disabled = false;
+                sendOtpBtn.querySelector('.btn-text').textContent = 'Send OTP';
+                sendOtpBtn.querySelector('.spinner').style.display = 'none';
+                emailInput.disabled = false;
+            }
+        });
+
+        // Countdown Timer Logic
+        function startTimer() {
+            clearInterval(countdownInterval);
+            countdownSeconds = 60;
+            resendOtpBtn.style.display = 'none';
+            countdownTimer.style.display = 'inline';
+            countdownTimer.textContent = `Resend OTP in ${countdownSeconds}s`;
+
+            countdownInterval = setInterval(() => {
+                countdownSeconds--;
+                if (countdownSeconds <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownTimer.style.display = 'none';
+                    resendOtpBtn.style.display = 'inline';
+                } else {
+                    countdownTimer.textContent = `Resend OTP in ${countdownSeconds}s`;
+                }
+            }, 1000);
+        }
+
+        // Resend OTP logic
+        resendOtpBtn.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
+            try {
+                resendOtpBtn.style.display = 'none';
+                countdownTimer.style.display = 'inline';
+                countdownTimer.textContent = 'Sending...';
+
+                await auth.sendOtp(email);
+
+                showToast('OTP sent successfully.', 'success');
+                startTimer();
+            } catch (err) {
+                console.error(err);
+                showToast(err.message || 'Failed to resend OTP.', 'error');
+                countdownTimer.style.display = 'none';
+                resendOtpBtn.style.display = 'inline';
+            }
+        });
+
+        // OTP inputs box functionality (Auto moves, Paste, Backspace)
+        otpBoxes.forEach((box, index) => {
+            // Only numeric inputs allowed
+            box.addEventListener('input', (e) => {
+                const val = e.target.value;
+                e.target.value = val.replace(/[^0-9]/g, '');
+
+                if (e.target.value.length === 1 && index < 5) {
+                    otpBoxes[index + 1].focus();
+                }
+                
+                checkFormValidity();
+            });
+
+            // Backspace moves to previous box
+            box.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
+                    otpBoxes[index - 1].focus();
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    verifyOtpBtn.click();
+                }
+            });
+
+            // Paste digits support
+            box.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim();
+                const digits = pasteData.replace(/[^0-9]/g, '').slice(0, 6);
+                
+                for (let i = 0; i < digits.length; i++) {
+                    if (otpBoxes[i]) {
+                        otpBoxes[i].value = digits[i];
+                    }
+                }
+
+                const targetFocus = Math.min(digits.length, 5);
+                otpBoxes[targetFocus].focus();
+                
+                checkFormValidity();
+            });
+        });
+
+        // Verify OTP logic
+        verifyOtpBtn.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
+            const otp = otpBoxes.map(b => b.value).join('');
+
+            if (otp.length !== 6) {
+                showToast('Please enter all 6 digits of the OTP.', 'error');
+                return;
+            }
+
+            try {
+                // Show spinner
+                verifyOtpBtn.disabled = true;
+                verifyOtpBtn.querySelector('.btn-text').textContent = '';
+                verifyOtpBtn.querySelector('.spinner').style.display = 'inline-block';
+
+                await auth.verifyOtpForLogin(email, otp);
+
+                showToast('Email verified successfully.', 'success');
+                isEmailVerified = true;
+
+                // Stop countdown
+                clearInterval(countdownInterval);
+
+                // Disable email input & color light gray
+                emailInput.disabled = true;
+                emailInput.style.backgroundColor = '#f1f5f9';
+
+                // Change "Send OTP" button to "✔ Verified" (disabled)
+                sendOtpBtn.disabled = true;
+                sendOtpBtn.querySelector('.btn-text').textContent = '✔ Verified';
+                sendOtpBtn.querySelector('.spinner').style.display = 'none';
+
+                // Hide OTP Section
+                otpSection.style.opacity = '0';
+                otpSection.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    otpSection.style.display = 'none';
+                    // Show Verified Checkmark animation
+                    verifiedCheckmarkContainer.style.display = 'block';
+                }, 400);
+
+                checkFormValidity();
+                passwordInput.focus();
+            } catch (err) {
+                console.error(err);
+                showToast(err.message || 'Invalid OTP.', 'error');
+                
+                // Clear inputs for retry
+                otpBoxes.forEach(b => b.value = '');
+                otpBoxes[0].focus();
+
+                // Reset button states
+                verifyOtpBtn.disabled = false;
+                verifyOtpBtn.querySelector('.btn-text').textContent = 'Verify OTP';
+                verifyOtpBtn.querySelector('.spinner').style.display = 'none';
+            }
+        });
+
+        // Show/Hide password toggle logic
+        togglePasswordBtn.addEventListener('click', () => {
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeOpenSvg.style.display = 'none';
+                eyeClosedSvg.style.display = 'block';
+            } else {
+                passwordInput.type = 'password';
+                eyeOpenSvg.style.display = 'block';
+                eyeClosedSvg.style.display = 'none';
+            }
+        });
+
+        // Password Strength Check and Meter Update
+        passwordInput.addEventListener('input', () => {
+            const password = passwordInput.value;
+            
+            // Checklist requirements
+            const requirements = {
+                length: password.length >= 8,
+                uppercase: /[A-Z]/.test(password),
+                lowercase: /[a-z]/.test(password),
+                number: /[0-9]/.test(password),
+                special: /[^A-Za-z0-9]/.test(password)
+            };
+
+            // Update items visually
+            let score = 0;
+            for (const key in requirements) {
+                const li = document.querySelector(`[data-requirement="${key}"]`);
+                if (requirements[key]) {
+                    li.classList.remove('invalid');
+                    li.classList.add('valid');
+                    li.querySelector('.check-icon').textContent = '✔';
+                    score++;
+                } else {
+                    li.classList.remove('valid');
+                    li.classList.add('invalid');
+                    li.querySelector('.check-icon').textContent = '✖';
+                }
+            }
+
+            // Calculate strength levels
+            const fill = document.getElementById('strength-fill');
+            const levelText = document.getElementById('strength-level');
+
+            if (password.length === 0) {
+                fill.style.width = '0%';
+                levelText.textContent = 'None';
+                levelText.style.color = 'var(--text-muted)';
+            } else if (score <= 1) {
+                fill.style.width = '20%';
+                fill.style.backgroundColor = '#ef4444'; // Red (Very Weak)
+                levelText.textContent = 'Very Weak';
+                levelText.style.color = '#ef4444';
+            } else if (score === 2) {
+                fill.style.width = '40%';
+                fill.style.backgroundColor = '#f97316'; // Orange (Weak)
+                levelText.textContent = 'Weak';
+                levelText.style.color = '#f97316';
+            } else if (score === 3) {
+                fill.style.width = '60%';
+                fill.style.backgroundColor = '#eab308'; // Yellow (Medium)
+                levelText.textContent = 'Medium';
+                levelText.style.color = '#eab308';
+            } else if (score === 4) {
+                fill.style.width = '80%';
+                fill.style.backgroundColor = '#22c55e'; // Green (Strong)
+                levelText.textContent = 'Strong';
+                levelText.style.color = '#22c55e';
+            } else if (score === 5) {
+                fill.style.width = '100%';
+                fill.style.backgroundColor = '#15803d'; // Dark Green (Very Strong)
+                levelText.textContent = 'Very Strong';
+                levelText.style.color = '#15803d';
+            }
+
+            checkFormValidity();
+        });
+
+        // Form validity check for Login Button
+        function checkFormValidity() {
+            const password = passwordInput.value;
+            if (isEmailVerified && password.length > 0) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        }
+
+        // Form submit handler
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -71,8 +913,7 @@
             
             let isValid = true;
             
-            // Client side validation
-            if (!email || !/\S+@\S+\.\S+/.test(email)) {
+            if (!email || !validateEmailFormat(email)) {
                 emailGroup.classList.add('has-error');
                 isValid = false;
             }
@@ -85,10 +926,21 @@
             if (!isValid) return;
 
             try {
+                // Show loading state
                 submitBtn.disabled = true;
-                showLoader();
+                submitBtn.querySelector('.submit-btn-text').textContent = 'Logging In...';
+                loginSpinner.style.display = 'inline-block';
                 
                 const response = await auth.login(email, password);
+
+                // Remember Me logic
+                const rememberMe = document.getElementById('remember-me').checked;
+                if (rememberMe) {
+                    localStorage.setItem('remember_me_email', email);
+                } else {
+                    localStorage.removeItem('remember_me_email');
+                }
+
                 showToast(`Welcome back, ${response.name}!`, 'success');
                 
                 // Parse redirect target or send to home catalog
@@ -106,6 +958,11 @@
             } catch (err) {
                 console.error(err);
                 
+                // Re-enable states
+                submitBtn.disabled = false;
+                submitBtn.querySelector('.submit-btn-text').textContent = 'Sign In';
+                loginSpinner.style.display = 'none';
+
                 // Display server validation/auth errors
                 if (err.details && err.details.fieldErrors) {
                     const fields = err.details.fieldErrors;
@@ -120,8 +977,6 @@
                 }
                 
                 showToast(err.message || 'Login failed. Please verify credentials.', 'error');
-                submitBtn.disabled = false;
-                hideLoader();
             }
         });
     </script>

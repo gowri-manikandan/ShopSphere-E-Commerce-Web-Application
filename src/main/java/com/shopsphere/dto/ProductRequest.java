@@ -23,6 +23,8 @@ public class ProductRequest {
 
     private String imageUrl;
 
+    private java.util.List<String> additionalImages;
+
     @NotNull(message = "Category id is required")
     private Long categoryId;
 }

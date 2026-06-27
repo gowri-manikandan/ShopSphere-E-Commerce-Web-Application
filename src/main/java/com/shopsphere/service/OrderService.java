@@ -147,6 +147,41 @@ public class OrderService {
         return OrderMapper.toResponse(orderRepository.save(order));
     }
 
+    @Transactional
+    public OrderResponse cancelOrder(Long orderId) {
+        User user = securityUtils.getCurrentUser();
+        Order order = findOrder(orderId);
+
+        if (!order.getUser().getId().equals(user.getId())) {
+            throw new BadRequestException("You can only cancel your own orders");
+        }
+
+        if (order.getStatus() != OrderStatus.PLACED) {
+            throw new BadRequestException("Order cannot be cancelled in its current state: " + order.getStatus());
+        }
+
+        if (order.getOrderDate().plusHours(24).isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Orders can only be cancelled within 24 hours of placement");
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+
+        // Restore stock
+        for (OrderItem item : order.getItems()) {
+            Product product = item.getProduct();
+            if (product != null) {
+                product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+                productRepository.save(product);
+            }
+        }
+
+        if (order.getPayment() != null) {
+            order.getPayment().setStatus(PaymentStatus.FAILED);
+        }
+
+        return OrderMapper.toResponse(orderRepository.save(order));
+    }
+
     // ----- helpers -----
 
     private Order findOrder(Long orderId) {

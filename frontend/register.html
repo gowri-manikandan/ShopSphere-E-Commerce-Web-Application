@@ -15,54 +15,88 @@
 
     <main class="auth-wrapper">
         <div class="auth-card">
-            <div class="auth-header">
-                <h2 class="auth-title">Create Account</h2>
-                <p class="auth-subtitle">Join ShopSphere today to start shopping</p>
+            <!-- Registration Flow -->
+            <div id="register-flow-section">
+                <div class="auth-header">
+                    <h2 class="auth-title">Create Account</h2>
+                    <p class="auth-subtitle">Join ShopSphere today to start shopping</p>
+                </div>
+                
+                <form id="register-form" novalidate>
+                    <!-- Name Field -->
+                    <div class="form-group" id="name-group">
+                        <label for="name-input" class="form-label">Full Name</label>
+                        <input type="text" id="name-input" class="form-control" placeholder="John Doe" required>
+                        <span class="form-error-msg" id="name-error">Please enter your full name.</span>
+                    </div>
+
+                    <!-- Email Field -->
+                    <div class="form-group" id="email-group">
+                        <label for="email-input" class="form-label">Email Address</label>
+                        <input type="email" id="email-input" class="form-control" placeholder="name@example.com" required>
+                        <span class="form-error-msg" id="email-error">Please enter a valid email address.</span>
+                    </div>
+                    
+                    <!-- Password Field -->
+                    <div class="form-group" id="password-group">
+                        <label for="password-input" class="form-label">Password</label>
+                        <input type="password" id="password-input" class="form-control" placeholder="••••••••" required>
+                        <div class="strength-meter-container" id="strength-meter-container" style="display: none;">
+                            <div class="strength-meter-bar">
+                                <div class="strength-meter-fill" id="strength-meter-fill"></div>
+                            </div>
+                            <span class="strength-meter-text" id="strength-meter-text"></span>
+                        </div>
+                        <span class="form-error-msg" id="password-error">Password must be at least 8 characters and contain uppercase, lowercase, number, and special character.</span>
+                    </div>
+
+                    <!-- Confirm Password Field -->
+                    <div class="form-group" id="confirm-group">
+                        <label for="confirm-input" class="form-label">Confirm Password</label>
+                        <input type="password" id="confirm-input" class="form-control" placeholder="••••••••" required>
+                        <span class="form-error-msg" id="confirm-error">Passwords do not match.</span>
+                    </div>
+                    
+                    <!-- Submit -->
+                    <button type="submit" class="btn btn-primary" id="submit-btn" style="width: 100%; height: 44px; margin-top: 10px;">
+                        Register Now
+                    </button>
+                </form>
+                
+                <div class="auth-redirect">
+                    Already have an account? <a href="login.html">Sign in here</a>
+                </div>
             </div>
-            
-            <form id="register-form" novalidate>
-                <!-- Name Field -->
-                <div class="form-group" id="name-group">
-                    <label for="name-input" class="form-label">Full Name</label>
-                    <input type="text" id="name-input" class="form-control" placeholder="John Doe" required>
-                    <span class="form-error-msg" id="name-error">Please enter your full name.</span>
-                </div>
 
-                <!-- Email Field -->
-                <div class="form-group" id="email-group">
-                    <label for="email-input" class="form-label">Email Address</label>
-                    <input type="email" id="email-input" class="form-control" placeholder="name@example.com" required>
-                    <span class="form-error-msg" id="email-error">Please enter a valid email address.</span>
+            <!-- OTP Verification Flow -->
+            <div id="otp-verify-section" style="display: none;">
+                <div class="auth-header">
+                    <h2 class="auth-title">Verify Email</h2>
+                    <p class="auth-subtitle">We sent a 6-digit OTP code to <strong id="verify-email-display"></strong></p>
                 </div>
                 
-                <!-- Password Field -->
-                <div class="form-group" id="password-group">
-                    <label for="password-input" class="form-label">Password</label>
-                    <input type="password" id="password-input" class="form-control" placeholder="••••••••" required>
-                    <span class="form-error-msg" id="password-error">Password must be at least 6 characters.</span>
-                </div>
-
-                <!-- Confirm Password Field -->
-                <div class="form-group" id="confirm-group">
-                    <label for="confirm-input" class="form-label">Confirm Password</label>
-                    <input type="password" id="confirm-input" class="form-control" placeholder="••••••••" required>
-                    <span class="form-error-msg" id="confirm-error">Passwords do not match.</span>
-                </div>
+                <form id="otp-form" novalidate>
+                    <div class="form-group" id="otp-group">
+                        <label for="otp-input" class="form-label">Verification OTP</label>
+                        <input type="text" id="otp-input" class="form-control" placeholder="123456" maxlength="6" required>
+                        <span class="form-error-msg" id="otp-error">Please enter a valid 6-digit OTP code.</span>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="verify-submit-btn" style="width: 100%; height: 44px; margin-top: 10px;">
+                        Verify Code
+                    </button>
+                </form>
                 
-                <!-- Submit -->
-                <button type="submit" class="btn btn-primary" id="submit-btn" style="width: 100%; height: 44px; margin-top: 10px;">
-                    Register Now
-                </button>
-            </form>
-            
-            <div class="auth-redirect">
-                Already have an account? <a href="login.html">Sign in here</a>
+                <div class="auth-redirect" style="margin-top: 20px;">
+                    Didn't receive the code? <a href="#" id="resend-otp-btn">Resend OTP</a>
+                </div>
             </div>
         </div>
     </main>
 
     <!-- Script Logic -->
     <script type="module">
+        import './js/navbar.js';
         import { auth } from './js/auth.js';
         import { showToast, showLoader, hideLoader } from './js/ui.js';
 
@@ -77,6 +111,48 @@
         const passwordGroup = document.getElementById('password-group');
         const confirmGroup = document.getElementById('confirm-group');
         const submitBtn = document.getElementById('submit-btn');
+
+        // Password Strength Checker logic
+        passwordInput.addEventListener('input', () => {
+            const val = passwordInput.value;
+            if (!val) {
+                document.getElementById('strength-meter-container').style.display = 'none';
+                return;
+            }
+            document.getElementById('strength-meter-container').style.display = 'block';
+            
+            const criteria = {
+                length: val.length >= 8,
+                upper: /[A-Z]/.test(val),
+                lower: /[a-z]/.test(val),
+                number: /[0-9]/.test(val),
+                special: /[^A-Za-z0-9]/.test(val)
+            };
+            
+            const score = Object.values(criteria).filter(Boolean).length;
+            
+            let strength = 'Weak';
+            let color = '#ef4444'; // Red
+            let width = '33%';
+            
+            if (score === 5) {
+                strength = 'Strong';
+                color = '#10b981'; // Green
+                width = '100%';
+            } else if (score >= 3) {
+                strength = 'Medium';
+                color = '#f59e0b'; // Orange
+                width = '66%';
+            }
+            
+            const fill = document.getElementById('strength-meter-fill');
+            const text = document.getElementById('strength-meter-text');
+            
+            fill.style.width = width;
+            fill.style.backgroundColor = color;
+            text.textContent = `Strength: ${strength}`;
+            text.style.color = color;
+        });
 
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -105,7 +181,7 @@
                 isValid = false;
             }
             
-            if (!password || password.length < 6) {
+            if (!password || password.length < 8) {
                 passwordGroup.classList.add('has-error');
                 isValid = false;
             }
@@ -122,11 +198,12 @@
                 showLoader();
                 
                 const response = await auth.register(name, email, password);
-                showToast(`Account created successfully! Welcome, ${response.name}!`, 'success');
+                showToast('Registration successful! Please verify your email with the code sent.', 'success');
                 
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1000);
+                document.getElementById('register-flow-section').style.display = 'none';
+                document.getElementById('verify-email-display').textContent = email;
+                document.getElementById('otp-verify-section').style.display = 'block';
+                hideLoader();
                 
             } catch (err) {
                 console.error(err);
@@ -150,6 +227,57 @@
                 
                 showToast(err.message || 'Registration failed. Email might already exist.', 'error');
                 submitBtn.disabled = false;
+                hideLoader();
+            }
+        });
+
+        // OTP Form submit handler
+        const otpForm = document.getElementById('otp-form');
+        const otpInput = document.getElementById('otp-input');
+        const otpGroup = document.getElementById('otp-group');
+        const verifySubmitBtn = document.getElementById('verify-submit-btn');
+        const resendOtpBtn = document.getElementById('resend-otp-btn');
+
+        otpForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            otpGroup.classList.remove('has-error');
+            const otp = otpInput.value.trim();
+            const email = emailInput.value.trim();
+            
+            if (!otp || otp.length !== 6 || !/^\d+$/.test(otp)) {
+                otpGroup.classList.add('has-error');
+                return;
+            }
+            
+            try {
+                verifySubmitBtn.disabled = true;
+                showLoader();
+                
+                const response = await auth.verify(email, otp);
+                showToast(`Email verified successfully! Welcome, ${response.name}!`, 'success');
+                
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+            } catch (err) {
+                console.error(err);
+                showToast(err.message || 'OTP verification failed. Please try again.', 'error');
+                verifySubmitBtn.disabled = false;
+                hideLoader();
+            }
+        });
+
+        resendOtpBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = emailInput.value.trim();
+            try {
+                showLoader();
+                await auth.resendOtp(email);
+                showToast('Verification OTP code resent to your email!', 'success');
+            } catch (err) {
+                console.error(err);
+                showToast(err.message || 'Failed to resend OTP code.', 'error');
+            } finally {
                 hideLoader();
             }
         });

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Manage your ShopSphere profile, edit personal details, change password, and organize shipping addresses.">
+    <title>My Profile — ShopSphere</title>
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Shared Navigation Bar -->
+    <header id="navbar-container"></header>
+
+    <!-- Main Container -->
+    <main class="container">
+        <h2 class="section-title">My Account</h2>
+        
+        <div class="profile-grid">
+            <!-- Left Panel: Avatar & Summary -->
+            <div class="profile-card-left">
+                <div class="profile-avatar-wrapper">
+                    <img id="avatar-image" src="" alt="Avatar" class="profile-avatar-img" style="display: none;">
+                    <div id="avatar-placeholder" class="profile-avatar-placeholder">U</div>
+                    <label for="avatar-upload-input" class="profile-upload-btn-label">
+                        <span>Upload Photo</span>
+                    </label>
+                    <input type="file" id="avatar-upload-input" class="file-upload-input-hidden" accept="image/*">
+                </div>
+                
+                <h3 class="profile-name" id="profile-display-name">Loading...</h3>
+                <p class="profile-email" id="profile-display-email">loading@shopsphere.com</p>
+                <span class="profile-badge" id="profile-display-role">CUSTOMER</span>
+            </div>
+
+            <!-- Right Panel: Forms -->
+            <div class="profile-card-right">
+                
+                <!-- Section 1: Edit Profile Details -->
+                <div class="profile-section-card">
+                    <h3 class="profile-section-title">Personal Details</h3>
+                    <form id="profile-details-form">
+                        <div class="form-group" id="name-group">
+                            <label for="profile-name-input" class="form-label">Full Name</label>
+                            <input type="text" id="profile-name-input" class="form-control" required>
+                            <span class="form-error-msg">Name is required.</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="profile-email-input" class="form-label">Email Address</label>
+                            <input type="email" id="profile-email-input" class="form-control" readonly style="background-color: var(--bg-main); cursor: not-allowed;">
+                            <small style="color: var(--text-muted); font-size: 12px; margin-top: 4px; display: block;">Registered email address cannot be changed.</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Save Profile</button>
+                    </form>
+                </div>
+
+                <!-- Section 2: Change Password -->
+                <div class="profile-section-card">
+                    <h3 class="profile-section-title">Change Password</h3>
+                    <form id="change-password-form">
+                        <div class="form-group" id="old-pass-group">
+                            <label for="old-password-input" class="form-label">Current Password</label>
+                            <input type="password" id="old-password-input" class="form-control" placeholder="••••••••" required>
+                            <span class="form-error-msg">Current password is required.</span>
+                        </div>
+                        
+                        <div class="form-group" id="new-pass-group">
+                            <label for="new-password-input" class="form-label">New Password</label>
+                            <input type="password" id="new-password-input" class="form-control" placeholder="••••••••" required>
+                            <!-- Password strength bar -->
+                            <div class="strength-meter-container" id="new-pass-strength-container" style="display: none;">
+                                <div class="strength-meter-bar">
+                                    <div class="strength-meter-fill" id="new-pass-strength-fill"></div>
+                                </div>
+                                <span class="strength-meter-text" id="new-pass-strength-text"></span>
+                            </div>
+                            <span class="form-error-msg">Password must be at least 8 characters and contain uppercase, lowercase, number, and special character.</span>
+                        </div>
+
+                        <div class="form-group" id="confirm-pass-group">
+                            <label for="confirm-password-input" class="form-label">Confirm New Password</label>
+                            <input type="password" id="confirm-password-input" class="form-control" placeholder="••••••••" required>
+                            <span class="form-error-msg">Passwords do not match.</span>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Update Password</button>
+                    </form>
+                </div>
+
+                <!-- Section 3: Shipping Addresses -->
+                <div class="profile-section-card">
+                    <h3 class="profile-section-title">Saved Shipping Addresses</h3>
+                    
+                    <div class="address-list" id="addresses-container">
+                        <!-- Loaded dynamically -->
+                        <p class="loader-text">Loading addresses...</p>
+                    </div>
+
+                    <h4 style="font-size: 15px; font-weight: 700; margin-top: 30px; margin-bottom: 15px; border-top: 1px solid var(--border-color); padding-top: 20px;">Add New Address</h4>
+                    
+                    <form id="add-address-form">
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
+                            <div class="form-group" id="line1-group">
+                                <label for="address-line1" class="form-label">Address Line</label>
+                                <input type="text" id="address-line1" class="form-control" placeholder="12 MG Road, Appt 4B" required>
+                            </div>
+                            <div class="form-group" id="phone-group">
+                                <label for="address-phone" class="form-label">Phone Number</label>
+                                <input type="text" id="address-phone" class="form-control" placeholder="9876543210" required>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 10px;">
+                            <div class="form-group" id="city-group">
+                                <label for="address-city" class="form-label">City</label>
+                                <input type="text" id="address-city" class="form-control" placeholder="Mumbai" required>
+                            </div>
+                            <div class="form-group" id="state-group">
+                                <label for="address-state" class="form-label">State</label>
+                                <input type="text" id="address-state" class="form-control" placeholder="Maharashtra" required>
+                            </div>
+                            <div class="form-group" id="pincode-group">
+                                <label for="address-pincode" class="form-label">Pincode</label>
+                                <input type="text" id="address-pincode" class="form-control" placeholder="400001" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-secondary" style="margin-top: 16px;">Add Address</button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Main JavaScript Logic -->
+    <script type="module" src="js/profile.js"></script>
+</body>
+</html>

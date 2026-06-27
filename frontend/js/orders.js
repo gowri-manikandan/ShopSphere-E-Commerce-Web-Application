@@ -1,6 +1,7 @@
 import { api } from './api.js';
 import { showToast, showLoader, hideLoader } from './ui.js';
 import { renderStars } from './catalog.js';
+import './navbar.js';
 
 // DOM elements
 const ordersList = document.getElementById('orders-list');
@@ -110,7 +111,7 @@ function renderOrderCard(order) {
                 <div class="order-items-list">
                     <h4 class="receipt-title" style="margin-bottom: 8px;">Order Items</h4>
                     ${order.items.map(item => {
-                        const fallbackImage = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%23cbd5e1" width="100%" height="100%"><rect width="100%" height="100%" fill="%23f1f5f9"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" /></svg>`;
+                          const fallbackImage = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjY2JkNWUxIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjEiIGQ9Ik0yLjI1IDE1YTQuNSA0LjUgMCAwMDQuNSA0LjVIMThhMy43NSAzLjc1IDAgMDAxLjMzMi03LjI1NyAzIDMgMCAwMC0zLjc1OC0zLjg0OCA1LjI1IDUuMjUgMCAwMC0xMC4yMzMgMi4zM0E0LjUwMiA0LjUwMiAwIDAwMi4yNSAxNXoiIC8+PC9zdmc+`;
                         const imgUrl = item.imageUrl || fallbackImage;
                         return `
                             <div class="order-item-row-simple">
@@ -147,11 +148,67 @@ function renderOrderCard(order) {
                             <span style="font-family:var(--font-heading);">₹${order.totalAmount.toFixed(2)}</span>
                         </div>
                     </div>
+                    
+                    <!-- Cancel Action Button -->
+                    ${order.status === 'PLACED' && (new Date(order.orderDate).getTime() + 24 * 60 * 60 * 1000 - new Date().getTime()) > 0 ? `
+                        <button class="btn btn-outline-danger btn-sm cancel-order-btn" style="width: 100%; margin-top: 15px; height: 36px; font-weight: 600;" data-id="${order.orderId}">
+                            Cancel Order (Remaining: <span id="countdown-${order.orderId}">--:--:--</span>)
+                        </button>
+                    ` : ''}
                 </div>
                 
             </div>
         </div>
     `;
+
+    // Active cancellation countdown timer and submit listener
+    const orderDate = new Date(order.orderDate);
+    const timeDiff = orderDate.getTime() + (24 * 60 * 60 * 1000) - new Date().getTime();
+    if (order.status === 'PLACED' && timeDiff > 0) {
+        let intervalId;
+        const updateCountdown = () => {
+            const remaining = orderDate.getTime() + (24 * 60 * 60 * 1000) - new Date().getTime();
+            const countdownSpan = card.querySelector(`#countdown-${order.orderId}`);
+            const btn = card.querySelector(`.cancel-order-btn`);
+            if (remaining <= 0) {
+                clearInterval(intervalId);
+                if (btn) btn.disabled = true;
+                if (countdownSpan) countdownSpan.textContent = "00:00:00";
+            } else {
+                const hours = Math.floor(remaining / (1000 * 60 * 60));
+                const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+                
+                const pad = (n) => String(n).padStart(2, '0');
+                if (countdownSpan) {
+                    countdownSpan.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+                }
+            }
+        };
+        
+        setTimeout(updateCountdown, 0);
+        intervalId = setInterval(updateCountdown, 1000);
+        
+        const cancelBtn = card.querySelector(`.cancel-order-btn`);
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', async (e) => {
+                e.stopPropagation(); // Prevent toggling accordion card open/close state
+                if (confirm('Are you sure you want to cancel this order? This will restore product inventory.')) {
+                    try {
+                        showLoader();
+                        await api.post(`/api/orders/${order.orderId}/cancel`);
+                        showToast('Order cancelled successfully!', 'success');
+                        clearInterval(intervalId);
+                        await loadOrders();
+                    } catch (err) {
+                        showToast(err.message || 'Failed to cancel order.', 'error');
+                    } finally {
+                        hideLoader();
+                    }
+                }
+            });
+        }
+    }
 
     // Click handler to toggle open
     const summaryHeader = card.querySelector('.order-header-summary');

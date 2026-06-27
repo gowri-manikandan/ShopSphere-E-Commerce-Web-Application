@@ -31,8 +31,8 @@ public class OrderMapper {
 
     private static OrderItemResponse toItemResponse(OrderItem item) {
         return OrderItemResponse.builder()
-                .productId(item.getProduct().getId())
-                .productName(item.getProduct().getName())
+                .productId(item.getProduct() != null ? item.getProduct().getId() : null)
+                .productName(item.getProduct() != null ? item.getProduct().getName() : "Deleted Product")
                 .quantity(item.getQuantity())
                 .price(item.getPrice())
                 .subtotal(item.getPrice().multiply(java.math.BigDecimal.valueOf(item.getQuantity())))

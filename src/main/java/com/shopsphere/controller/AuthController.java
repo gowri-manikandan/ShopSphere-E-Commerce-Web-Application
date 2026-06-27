@@ -25,4 +25,27 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
+
+    @PostMapping("/verify")
+    public ResponseEntity<AuthResponse> verify(@Valid @RequestBody com.shopsphere.dto.OtpVerificationRequest request) {
+        return ResponseEntity.ok(authService.verifyOtp(request));
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<com.shopsphere.dto.ApiMessage> resendOtp(@RequestParam String email) {
+        authService.resendOtp(email);
+        return ResponseEntity.ok(new com.shopsphere.dto.ApiMessage("Verification OTP resent successfully"));
+    }
+
+    @PostMapping("/send-otp")
+    public ResponseEntity<com.shopsphere.dto.ApiMessage> sendOtp(@Valid @RequestBody com.shopsphere.dto.SendOtpRequest request) {
+        authService.sendOtpForLogin(request.getEmail());
+        return ResponseEntity.ok(new com.shopsphere.dto.ApiMessage("OTP sent successfully."));
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<com.shopsphere.dto.ApiMessage> verifyOtpForLogin(@Valid @RequestBody com.shopsphere.dto.OtpVerificationRequest request) {
+        authService.verifyOtpForLogin(request.getEmail(), request.getOtp());
+        return ResponseEntity.ok(new com.shopsphere.dto.ApiMessage("Email verified successfully"));
+    }
 }

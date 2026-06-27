@@ -42,15 +42,47 @@ async function loadProductDetails() {
         // Update browser tab title
         document.title = `${product.name} — ShopSphere`;
         
-        const fallbackImage = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%23cbd5e1" width="100%" height="100%"><rect width="100%" height="100%" fill="%23f1f5f9"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" /></svg>`;
-        const imgUrl = product.imageUrl || fallbackImage;
+        const fallbackImage = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjY2JkNWUxIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjEiIGQ9Ik0yLjI1IDE1YTQuNSA0LjUgMCAwMDQuNSA0LjVIMThhMy43NSAzLjc1IDAgMDAxLjMzMi03LjI1NyAzIDMgMCAwMC0zLjc1OC0zLjg0OCA1LjI1IDUuMjUgMCAwMC0xMC4yMzMgMi4zM0E0LjUwMiA0LjUwMiAwIDAwMi4yNSAxNXoiIC8+PC9zdmc+`;
         const isOutOfStock = product.stockQuantity <= 0;
 
+        // Gather all images (main imageUrl + additionalImages)
+        const images = [];
+        if (product.imageUrl) images.push(product.imageUrl);
+        if (product.additionalImages && Array.isArray(product.additionalImages)) {
+            product.additionalImages.forEach(img => {
+                if (img && !images.includes(img)) {
+                    images.push(img);
+                }
+            });
+        }
+        if (images.length === 0) {
+            images.push(fallbackImage);
+        }
+
+        // Construct gallery HTML
+        let galleryHtml = `
+            <div class="product-gallery-container">
+                <div class="main-image-wrapper" id="main-image-wrapper">
+                    <img src="${images[0]}" class="main-image-preview" id="main-image-preview" alt="${product.name}" onerror="this.src='${fallbackImage}'">
+                </div>
+        `;
+
+        if (images.length > 1) {
+            galleryHtml += `<div class="thumbnail-grid">`;
+            images.forEach((img, idx) => {
+                galleryHtml += `
+                    <div class="thumbnail-item ${idx === 0 ? 'active' : ''}" data-index="${idx}">
+                        <img src="${img}" alt="${product.name} Thumbnail" onerror="this.src='${fallbackImage}'">
+                    </div>
+                `;
+            });
+            galleryHtml += `</div>`;
+        }
+        galleryHtml += `</div>`;
+
         detailsContainer.innerHTML = `
-            <!-- Left: Product Image -->
-            <div class="details-gallery">
-                <img src="${imgUrl}" class="details-image" alt="${product.name}" onerror="this.src='${fallbackImage}'">
-            </div>
+            <!-- Left: Product Gallery with Hover Zoom -->
+            ${galleryHtml}
             
             <!-- Right: Product Info details -->
             <div class="details-info">
@@ -91,12 +123,52 @@ async function loadProductDetails() {
         `;
 
         // Wire up event listeners
+        setupImageGallery(images);
         setupQuantityPicker();
         setupCartButton();
     } catch (err) {
         showToast('Error loading product details.', 'error');
         detailsContainer.innerHTML = `<div class="empty-state" style="grid-column: span 2;"><h3>Product not found</h3><p>${err.message}</p></div>`;
     }
+}
+
+// Set up image gallery thumbnail swapping and hover zoom
+function setupImageGallery(images) {
+    const mainWrapper = document.getElementById('main-image-wrapper');
+    const mainPreview = document.getElementById('main-image-preview');
+    const thumbnails = document.querySelectorAll('.thumbnail-item');
+
+    if (!mainWrapper || !mainPreview) return;
+
+    // Hover zoom logic using coordinate-based scaling
+    mainWrapper.addEventListener('mousemove', (e) => {
+        const rect = mainWrapper.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const xPercent = (x / rect.width) * 100;
+        const yPercent = (y / rect.height) * 100;
+        mainPreview.style.transformOrigin = `${xPercent}% ${yPercent}%`;
+        mainPreview.style.transform = 'scale(2.0)';
+    });
+
+    mainWrapper.addEventListener('mouseleave', () => {
+        mainPreview.style.transform = 'scale(1.0)';
+        mainPreview.style.transformOrigin = 'center center';
+    });
+
+    // Thumbnail active switching
+    thumbnails.forEach(thumb => {
+        const selectImage = () => {
+            thumbnails.forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+            const idx = parseInt(thumb.getAttribute('data-index'));
+            if (images[idx]) {
+                mainPreview.src = images[idx];
+            }
+        };
+        thumb.addEventListener('click', selectImage);
+        thumb.addEventListener('mouseenter', selectImage);
+    });
 }
 
 // Qty Button bindings

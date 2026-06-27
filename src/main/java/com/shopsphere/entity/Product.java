@@ -34,6 +34,12 @@ public class Product {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "image_url")
+    @Builder.Default
+    private java.util.List<String> additionalImages = new java.util.ArrayList<>();
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;

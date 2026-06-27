@@ -23,6 +23,29 @@ export const auth = {
         return response;
     },
 
+    async verify(email, otp) {
+        const response = await api.post('/api/auth/verify', { email, otp }, true);
+        if (response && response.token) {
+            localStorage.setItem('token', response.token);
+            localStorage.setItem('name', response.name);
+            localStorage.setItem('email', response.email);
+            localStorage.setItem('role', response.role);
+        }
+        return response;
+    },
+
+    async resendOtp(email) {
+        return await api.post(`/api/auth/resend-otp?email=${encodeURIComponent(email)}`, {}, true);
+    },
+
+    async sendOtp(email) {
+        return await api.post('/api/auth/send-otp', { email }, true);
+    },
+
+    async verifyOtpForLogin(email, otp) {
+        return await api.post('/api/auth/verify-otp', { email, otp }, true);
+    },
+
     logout() {
         localStorage.removeItem('token');
         localStorage.removeItem('name');

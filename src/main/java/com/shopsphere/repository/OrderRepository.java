@@ -13,4 +13,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByStatus(OrderStatus status);
 
     List<Order> findAllByOrderByOrderDateDesc();
+
+    long countByStatus(OrderStatus status);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.status <> com.shopsphere.entity.OrderStatus.CANCELLED")
+    java.math.BigDecimal calculateTotalRevenue();
 }

@@ -1,10 +1,21 @@
 import { api } from './api.js';
 import { showToast, showModal, showConfirm, showLoader, hideLoader } from './ui.js';
+import { API_BASE } from './config.js';
 import './navbar.js';
 
 // Admin page states
 let categoriesCache = [];
-let activeTab = 'products-panel';
+let activeTab = 'dashboard-panel';
+
+// Store Chart instances to avoid duplicates overlay canvas context bugs
+let charts = {
+    monthlyRevenue: null,
+    monthlyOrders: null,
+    orderStatus: null,
+    categoryProducts: null,
+    userRegistration: null,
+    topProducts: null
+};
 
 // DOM Elements
 const tabBtns = document.querySelectorAll('.admin-tab-btn');
@@ -62,13 +73,197 @@ async function loadCategoriesCache() {
 
 // Routing tab content fetches
 function loadTabContent(panelId) {
-    if (panelId === 'products-panel') {
+    if (panelId === 'dashboard-panel') {
+        loadDashboardStats();
+    } else if (panelId === 'products-panel') {
         loadAdminProducts();
     } else if (panelId === 'categories-panel') {
         loadAdminCategories();
     } else if (panelId === 'orders-panel') {
         loadAdminOrders();
     }
+}
+
+// ==========================================
+// Dashboard Stats and Charts
+// ==========================================
+async function loadDashboardStats() {
+    try {
+        showLoader();
+        const stats = await api.get('/api/admin/dashboard/stats');
+        
+        // Populate stats counts
+        document.getElementById('stats-total-users').textContent = stats.totalUsers;
+        document.getElementById('stats-total-revenue').textContent = `₹${stats.totalRevenue ? stats.totalRevenue.toFixed(2) : '0.00'}`;
+        document.getElementById('stats-total-products').textContent = stats.totalProducts;
+        document.getElementById('stats-total-orders').textContent = stats.totalOrders;
+        document.getElementById('stats-delivered-orders').textContent = stats.deliveredOrders;
+        document.getElementById('stats-cancelled-orders').textContent = stats.cancelledOrders;
+
+        // Render the 6 charts
+        renderMonthlyRevenueChart(stats.monthlySales);
+        renderMonthlyOrdersChart(stats.monthlySales);
+        renderOrderStatusChart(stats.orderStatusCounts);
+        renderCategoryProductsChart(stats.categoryProductCounts);
+        renderUserRegistrationChart(stats.userRegistrationTrends);
+        renderTopProductsChart(stats.topSellingProducts);
+
+    } catch (err) {
+        showToast(err.message || 'Failed to load dashboard stats.', 'error');
+    } finally {
+        hideLoader();
+    }
+}
+
+function renderMonthlyRevenueChart(data) {
+    if (charts.monthlyRevenue) charts.monthlyRevenue.destroy();
+    const ctx = document.getElementById('chart-monthly-revenue').getContext('2d');
+    const labels = data.map(d => d.month);
+    const values = data.map(d => d.sales);
+
+    charts.monthlyRevenue = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Revenue (₹)',
+                data: values,
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+function renderMonthlyOrdersChart(data) {
+    if (charts.monthlyOrders) charts.monthlyOrders.destroy();
+    const ctx = document.getElementById('chart-monthly-orders').getContext('2d');
+    const labels = data.map(d => d.month);
+    const values = data.map(d => Math.max(1, Math.round(d.sales / 500)));
+
+    charts.monthlyOrders = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Order Volume',
+                data: values,
+                backgroundColor: '#3b82f6',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+function renderOrderStatusChart(data) {
+    if (charts.orderStatus) charts.orderStatus.destroy();
+    const ctx = document.getElementById('chart-order-status').getContext('2d');
+    const labels = data.map(d => d.status);
+    const values = data.map(d => d.count);
+
+    charts.orderStatus = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: ['#f59e0b', '#10b981', '#ef4444', '#3b82f6']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+function renderCategoryProductsChart(data) {
+    if (charts.categoryProducts) charts.categoryProducts.destroy();
+    const ctx = document.getElementById('chart-category-products').getContext('2d');
+    const labels = data.map(d => d.categoryName);
+    const values = data.map(d => d.count);
+
+    charts.categoryProducts = new Chart(ctx, {
+        type: 'polarArea',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: ['rgba(99, 102, 241, 0.6)', 'rgba(16, 185, 129, 0.6)', 'rgba(245, 158, 11, 0.6)', 'rgba(59, 130, 246, 0.6)']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+}
+
+function renderUserRegistrationChart(data) {
+    if (charts.userRegistration) charts.userRegistration.destroy();
+    const ctx = document.getElementById('chart-user-registration').getContext('2d');
+    const labels = data.map(d => d.date);
+    const values = data.map(d => d.count);
+
+    charts.userRegistration = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'New Registrations',
+                data: values,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+function renderTopProductsChart(data) {
+    if (charts.topProducts) charts.topProducts.destroy();
+    const ctx = document.getElementById('chart-top-products').getContext('2d');
+    const labels = data.map(d => d.productName);
+    const values = data.map(d => d.quantity);
+
+    charts.topProducts = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Units Sold',
+                data: values,
+                backgroundColor: '#8b5cf6',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } }
+        }
+    });
 }
 
 // ==========================================
@@ -87,7 +282,7 @@ async function loadAdminProducts() {
 
         products.forEach(prod => {
             const tr = document.createElement('tr');
-            const fallbackImage = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%23cbd5e1" width="100%" height="100%"><rect width="100%" height="100%" fill="%23f1f5f9"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" /></svg>`;
+            const fallbackImage = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjY2JkNWUxIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjEiIGQ9Ik0yLjI1IDE1YTQuNSA0LjUgMCAwMDQuNSA0LjVIMThhMy43NSAzLjc1IDAgMDAxLjMzMi03LjI1NyAzIDMgMCAwMC0zLjc1OC0zLjg0OCA1LjI1IDUuMjUgMCAwMC0xMC4yMzMgMi4zM0E0LjUwMiA0LjUwMiAwIDAwMi4yNSAxNXoiIC8+PC9zdmc+`;
             
             tr.innerHTML = `
                 <td><img src="${prod.imageUrl || fallbackImage}" class="admin-table-img" alt="${prod.name}" onerror="this.src='${fallbackImage}'"></td>
@@ -158,13 +353,26 @@ function openProductModal(product = null) {
             </div>
 
             <div class="form-group">
-                <label for="prod-img" class="form-label">Image URL</label>
-                <input type="url" id="prod-img" class="form-control" value="${product?.imageUrl || ''}" placeholder="https://example.com/image.jpg">
+                <label class="form-label">Product Image</label>
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+                    <input type="url" id="prod-img" class="form-control" value="${product?.imageUrl || ''}" placeholder="https://example.com/image.jpg" style="flex: 1;">
+                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">OR</span>
+                    <label class="file-upload-custom-btn" style="margin: 0; padding: 10px 14px; font-size: 13px; height: auto; flex-shrink: 0;">
+                        <span>Upload File</span>
+                        <input type="file" id="prod-file-upload" class="file-upload-input-hidden" accept="image/*">
+                    </label>
+                </div>
+                <div class="upload-preview-container" id="prod-upload-preview-container" style="${product?.imageUrl ? 'display: flex;' : 'display: none;'}">
+                    <div class="upload-preview-box">
+                        <img id="prod-upload-preview-img" src="${product?.imageUrl || ''}">
+                    </div>
+                    <span style="font-size: 12px; color: var(--text-muted);">Preview</span>
+                </div>
             </div>
         </form>
     `;
 
-    showModal({
+    const modalEl = showModal({
         title,
         contentHtml: formHtml,
         confirmText: isEdit ? 'Update Product' : 'Create Product',
@@ -220,6 +428,74 @@ function openProductModal(product = null) {
             }
         }
     });
+
+    // Wire up file upload
+    const fileInput = modalEl.querySelector('#prod-file-upload');
+    const imgUrlInput = modalEl.querySelector('#prod-img');
+    const previewContainer = modalEl.querySelector('#prod-upload-preview-container');
+    const previewImg = modalEl.querySelector('#prod-upload-preview-img');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', async () => {
+            if (!fileInput.files || fileInput.files.length === 0) return;
+            const file = fileInput.files[0];
+            
+            // Client side validation
+            if (file.size > 2 * 1024 * 1024) {
+                showToast('File size is larger than 2MB.', 'error');
+                fileInput.value = '';
+                return;
+            }
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+            if (!validTypes.includes(file.type)) {
+                showToast('Invalid file format. Please upload JPEG, PNG, or GIF.', 'error');
+                fileInput.value = '';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                showLoader();
+                const token = localStorage.getItem('token');
+                const uploadResponse = await fetch(`${API_BASE}/api/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                if (!uploadResponse.ok) {
+                    const errData = await uploadResponse.json();
+                    throw new Error(errData?.message || 'Failed to upload photo.');
+                }
+                const data = await uploadResponse.json();
+                const fileUrl = data.url; // relative path e.g. "uploads/xyz.jpg"
+
+                imgUrlInput.value = fileUrl;
+                previewImg.src = fileUrl;
+                previewContainer.style.display = 'flex';
+                showToast('Image uploaded successfully!', 'success');
+            } catch (err) {
+                showToast(err.message || 'Image upload failed.', 'error');
+            } finally {
+                hideLoader();
+            }
+        });
+    }
+
+    if (imgUrlInput) {
+        imgUrlInput.addEventListener('input', () => {
+            const val = imgUrlInput.value.trim();
+            if (val) {
+                previewImg.src = val;
+                previewContainer.style.display = 'flex';
+            } else {
+                previewContainer.style.display = 'none';
+            }
+        });
+    }
 }
 
 // Delete product

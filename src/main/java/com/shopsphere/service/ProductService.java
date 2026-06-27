@@ -9,6 +9,8 @@ import com.shopsphere.mapper.ProductMapper;
 import com.shopsphere.repository.CategoryRepository;
 import com.shopsphere.repository.ProductRepository;
 import com.shopsphere.repository.ReviewRepository;
+import com.shopsphere.repository.CartItemRepository;
+import com.shopsphere.repository.OrderItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,8 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ReviewRepository reviewRepository;
+    private final CartItemRepository cartItemRepository;
+    private final OrderItemRepository orderItemRepository;
 
     @Transactional(readOnly = true)
     public List<ProductResponse> getAll() {
@@ -59,6 +63,7 @@ public class ProductService {
                 .stockQuantity(request.getStockQuantity())
                 .imageUrl(request.getImageUrl())
                 .category(category)
+                .additionalImages(request.getAdditionalImages() != null ? request.getAdditionalImages() : new java.util.ArrayList<>())
                 .build();
         return toResponseWithRating(productRepository.save(product));
     }
@@ -74,6 +79,11 @@ public class ProductService {
         product.setStockQuantity(request.getStockQuantity());
         product.setImageUrl(request.getImageUrl());
         product.setCategory(category);
+        
+        if (request.getAdditionalImages() != null) {
+            product.getAdditionalImages().clear();
+            product.getAdditionalImages().addAll(request.getAdditionalImages());
+        }
 
         return toResponseWithRating(productRepository.save(product));
     }
@@ -81,6 +91,17 @@ public class ProductService {
     @Transactional
     public void delete(Long id) {
         Product product = findProduct(id);
+        
+        // Delete related cart items
+        cartItemRepository.deleteByProductId(id);
+        
+        // Delete related reviews
+        reviewRepository.deleteByProductId(id);
+        
+        // Disassociate related order items
+        orderItemRepository.disassociateProduct(id);
+        
+        // Delete product
         productRepository.delete(product);
     }
 

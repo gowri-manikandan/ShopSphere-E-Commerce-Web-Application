@@ -18,6 +18,7 @@ public class ProductResponse {
     private BigDecimal price;
     private Integer stockQuantity;
     private String imageUrl;
+    private java.util.List<String> additionalImages;
     private Long categoryId;
     private String categoryName;
     private Double averageRating;

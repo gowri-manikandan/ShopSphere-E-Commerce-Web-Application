@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Manage products, catalog categories, and update customer order status entries on ShopSphere.">
     <title>Admin Dashboard — ShopSphere</title>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Stylesheet -->
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -22,15 +24,94 @@
         
         <!-- Navigation Tabs -->
         <div class="admin-tabs">
-            <button class="admin-tab-btn active" data-tab-target="products-panel">Products</button>
+            <button class="admin-tab-btn active" data-tab-target="dashboard-panel">Dashboard</button>
+            <button class="admin-tab-btn" data-tab-target="products-panel">Products</button>
             <button class="admin-tab-btn" data-tab-target="categories-panel">Categories</button>
             <button class="admin-tab-btn" data-tab-target="orders-panel">Orders</button>
         </div>
 
         <!-- ==========================================
+             Dashboard Panel
+             ========================================== -->
+        <section id="dashboard-panel" class="admin-tab-panel active">
+            <!-- Statistical Cards -->
+            <div class="dashboard-stats-grid">
+                <div class="stat-card users">
+                    <span class="stat-label">Total Users</span>
+                    <span class="stat-value" id="stats-total-users">0</span>
+                </div>
+                <div class="stat-card revenue">
+                    <span class="stat-label">Total Revenue</span>
+                    <span class="stat-value" id="stats-total-revenue">₹0.00</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Total Products</span>
+                    <span class="stat-value" id="stats-total-products">0</span>
+                </div>
+                <div class="stat-card info">
+                    <span class="stat-label">Total Orders</span>
+                    <span class="stat-value" id="stats-total-orders">0</span>
+                </div>
+                <div class="stat-card delivered">
+                    <span class="stat-label">Delivered Orders</span>
+                    <span class="stat-value" id="stats-delivered-orders">0</span>
+                </div>
+                <div class="stat-card cancelled">
+                    <span class="stat-label">Cancelled Orders</span>
+                    <span class="stat-value" id="stats-cancelled-orders">0</span>
+                </div>
+            </div>
+
+            <!-- Chart.js 6 Visualizations Grid -->
+            <div class="dashboard-charts-grid">
+                <div class="chart-card">
+                    <h4 class="chart-title">Monthly Revenue (INR)</h4>
+                    <div style="position: relative; height: 260px; width: 100%;">
+                        <canvas id="chart-monthly-revenue"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <h4 class="chart-title">Monthly Sales Volume (Orders)</h4>
+                    <div style="position: relative; height: 260px; width: 100%;">
+                        <canvas id="chart-monthly-orders"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h4 class="chart-title">Orders Status Distribution</h4>
+                    <div style="position: relative; height: 260px; width: 100%;">
+                        <canvas id="chart-order-status"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h4 class="chart-title">Products Count by Category</h4>
+                    <div style="position: relative; height: 260px; width: 100%;">
+                        <canvas id="chart-category-products"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card" style="grid-column: span 2;">
+                    <h4 class="chart-title">User Registration Trend (Last 7 Days)</h4>
+                    <div style="position: relative; height: 260px; width: 100%;">
+                        <canvas id="chart-user-registration"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card" style="grid-column: span 2;">
+                    <h4 class="chart-title">Top 5 Best Selling Products (Quantity)</h4>
+                    <div style="position: relative; height: 260px; width: 100%;">
+                        <canvas id="chart-top-products"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
              Products Management Panel
              ========================================== -->
-        <section id="products-panel" class="admin-tab-panel active">
+        <section id="products-panel" class="admin-tab-panel">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
                 <h3 class="section-title">Manage Products</h3>
                 <button class="btn btn-primary btn-sm" id="admin-add-product-btn">
