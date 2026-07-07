@@ -71,36 +71,38 @@ passing test, and is committed.**
 
 ## 4. Architecture & Folder Conventions
 
-Standard layered Spring Boot structure, one package per domain:
+Standard layered Spring Boot structure, **package-by-layer** (one package per
+technical layer; all domains share each layer package):
 
 ```
-com.ecommerce.app
- ├── config/          # SecurityConfig, WebSocketConfig, OpenApiConfig, CorsConfig
- ├── common/
- │    ├── exception/  # Custom exceptions + GlobalExceptionHandler (@ControllerAdvice)
- │    ├── response/   # ApiResponse<T> wrapper (see §8)
- │    └── util/
- ├── auth/             # controller, service, dto
- ├── user/
- ├── product/
- ├── category/
- ├── cart/
- ├── order/
- ├── payment/
- ├── search/           # AI recommendation + semantic search service
- ├── realtime/         # WebSocket handlers, STOMP controllers
- └── admin/
+com.shopsphere
+ ├── config/          # DataInitializer and other @Configuration/bootstrap beans
+ ├── controller/      # all REST controllers
+ ├── service/         # all business-logic services (concrete classes, no impl/ split)
+ ├── repository/      # all Spring Data JPA repositories
+ ├── entity/          # all JPA entities + enums (OrderStatus, Role, PaymentMethod, …)
+ ├── dto/             # all request/response DTOs (flat; see naming below)
+ ├── mapper/          # entity <-> DTO mappers (static utility classes, not MapStruct)
+ ├── exception/       # custom exceptions + GlobalExceptionHandler (@RestControllerAdvice)
+ └── security/        # SecurityConfig, JwtService, JwtAuthenticationFilter, SecurityUtils, …
 ```
 
-Within each domain package: `controller/`, `service/` (+ `impl/`), `repository/`,
-`entity/`, `dto/` (request/response separated), `mapper/` (MapStruct preferred
-over manual mapping).
+- Base package is `com.shopsphere`.
+- New layer packages get added as features land — e.g. WebSocket/STOMP handlers
+  (§5) and the AI search/recommendation service (§6) go in their own packages
+  (`realtime/`, `search/`) alongside the layers above when built.
+- One class per file; layer suffix in the name (`ProductController`,
+  `ProductService`, `ProductRepository`).
 
 **Naming conventions:**
 - DB tables: `snake_case`, plural (`products`, `order_items`)
 - Java fields/methods: `camelCase`
-- REST routes: `/api/v1/{resource}` plural, kebab-case for multi-word (`/api/v1/order-items`)
-- DTOs: `ProductRequest`, `ProductResponse` — never expose entities directly in controllers
+- REST routes: `/api/{resource}` plural, kebab-case for multi-word
+  (`/api/order-items`). Admin routes are nested under `/api/admin/...`.
+- DTOs live in the flat `dto/` package, suffixed `Request`/`Response`
+  (`ProductRequest`, `ProductResponse`) — never expose entities directly in controllers
+- Tests mirror the layer packages under `src/test/java` (`service/`, `controller/`);
+  shared test helpers go in `support/`
 
 ---
 
@@ -140,12 +142,12 @@ This is the flagship feature — implement carefully, not as an afterthought.
 2. Store the embedding as a `JSON`/`TEXT` column (serialized float array) on
    the `product_embeddings` table (separate table, not on `products`, to keep
    product reads fast).
-3. **Semantic search endpoint** (`GET /api/v1/search/semantic?q=...`):
+3. **Semantic search endpoint** (`GET /api/search/semantic?q=...`):
    embed the query, compute cosine similarity in-app (Java) against cached
    embeddings loaded into memory (fine at mid-level scale, <50k products).
    If scale grows: migrate to a vector DB (Weaviate, Milvus, or Postgres+pgvector —
    flag this as a future migration, don't build it now with MySQL).
-4. **Recommendations endpoint** (`GET /api/v1/products/{id}/recommendations`):
+4. **Recommendations endpoint** (`GET /api/products/{id}/recommendations`):
    top-N nearest neighbors by embedding similarity, excluding out-of-stock items.
 5. **"Ask AI" natural-language product finder** (stretch within this module):
    accept a free-text query like "gift for someone who likes running", embed it,
@@ -192,7 +194,7 @@ Hibernate exceptions leak to the client.
 ## 9. Payment
 
 - Stripe test mode, `PaymentIntent` flow
-- Webhook endpoint (`/api/v1/payments/webhook`) must verify Stripe signature
+- Webhook endpoint (`/api/payments/webhook`) must verify Stripe signature
 - **Idempotency:** store Stripe event IDs processed; reject duplicates —
   webhooks can be retried and must not double-fulfill orders
 

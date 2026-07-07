@@ -11,7 +11,10 @@ import com.shopsphere.repository.ProductRepository;
 import com.shopsphere.repository.ReviewRepository;
 import com.shopsphere.repository.CartItemRepository;
 import com.shopsphere.repository.OrderItemRepository;
+import com.shopsphere.search.ProductChangedEvent;
+import com.shopsphere.search.ProductDeletedEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +29,7 @@ public class ProductService {
     private final ReviewRepository reviewRepository;
     private final CartItemRepository cartItemRepository;
     private final OrderItemRepository orderItemRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     public List<ProductResponse> getAll() {
@@ -65,7 +69,10 @@ public class ProductService {
                 .category(category)
                 .additionalImages(request.getAdditionalImages() != null ? request.getAdditionalImages() : new java.util.ArrayList<>())
                 .build();
-        return toResponseWithRating(productRepository.save(product));
+        Product saved = productRepository.save(product);
+        // Embedding generated after commit, off-thread (see EmbeddingService).
+        eventPublisher.publishEvent(new ProductChangedEvent(saved.getId()));
+        return toResponseWithRating(saved);
     }
 
     @Transactional
@@ -85,24 +92,27 @@ public class ProductService {
             product.getAdditionalImages().addAll(request.getAdditionalImages());
         }
 
-        return toResponseWithRating(productRepository.save(product));
+        Product saved = productRepository.save(product);
+        eventPublisher.publishEvent(new ProductChangedEvent(saved.getId()));
+        return toResponseWithRating(saved);
     }
 
     @Transactional
     public void delete(Long id) {
         Product product = findProduct(id);
-        
+
         // Delete related cart items
         cartItemRepository.deleteByProductId(id);
-        
+
         // Delete related reviews
         reviewRepository.deleteByProductId(id);
-        
+
         // Disassociate related order items
         orderItemRepository.disassociateProduct(id);
-        
-        // Delete product
+
+        // Delete product (product_embeddings row cascades via FK)
         productRepository.delete(product);
+        eventPublisher.publishEvent(new ProductDeletedEvent(id));
     }
 
     // ---- helpers ----

@@ -3,6 +3,7 @@ package com.shopsphere.controller;
 import com.shopsphere.dto.ApiMessage;
 import com.shopsphere.dto.ProductRequest;
 import com.shopsphere.dto.ProductResponse;
+import com.shopsphere.search.RecommendationService;
 import com.shopsphere.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final RecommendationService recommendationService;
 
     // Public: list / filter / search
     @GetMapping
@@ -36,6 +38,14 @@ public class ProductController {
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getById(id));
+    }
+
+    // Public: AI recommendations — nearest products by embedding, excluding out-of-stock (§6)
+    @GetMapping("/{id}/recommendations")
+    public ResponseEntity<List<ProductResponse>> recommendations(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "5") int limit) {
+        return ResponseEntity.ok(recommendationService.recommend(id, limit));
     }
 
     // Admin only (enforced in SecurityConfig)
