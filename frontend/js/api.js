@@ -9,17 +9,50 @@ function isAuthPage() {
 // Redirect helper
 function handleAuthFailure() {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('name');
     localStorage.removeItem('email');
     localStorage.removeItem('role');
-    
+
     if (!isAuthPage()) {
         window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);
     }
 }
 
+// Single-flight refresh: concurrent 401s share one refresh call.
+let refreshPromise = null;
+
+async function tryRefresh() {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) return false;
+
+    if (!refreshPromise) {
+        refreshPromise = fetch(`${API_BASE}/api/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken })
+        })
+        .then(async (res) => {
+            if (!res.ok) return false;
+            const data = await res.json();
+            if (data && data.token) {
+                localStorage.setItem('token', data.token);
+                if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+                if (data.name) localStorage.setItem('name', data.name);
+                if (data.email) localStorage.setItem('email', data.email);
+                if (data.role) localStorage.setItem('role', data.role);
+                return true;
+            }
+            return false;
+        })
+        .catch(() => false)
+        .finally(() => { refreshPromise = null; });
+    }
+    return refreshPromise;
+}
+
 // Universal fetch wrapper
-async function request(method, path, body = null, isPublic = false) {
+async function request(method, path, body = null, isPublic = false, _retry = false) {
     const url = `${API_BASE}${path}`;
     const headers = {
         'Content-Type': 'application/json'
@@ -42,10 +75,16 @@ async function request(method, path, body = null, isPublic = false) {
     try {
         const response = await fetch(url, options);
 
-        // 401 = not authenticated / expired token -> clear session and redirect.
-        // 403 (forbidden) is a legitimate authorization denial and must NOT log
-        // the user out; let it fall through to normal error handling below.
+        // 401 = expired/invalid access token. Try a one-time silent refresh, then
+        // retry the original request. If refresh fails -> clear session + redirect.
+        // 403 (forbidden) is a legitimate authorization denial and must NOT log out.
         if (response.status === 401) {
+            if (!isPublic && !_retry) {
+                const refreshed = await tryRefresh();
+                if (refreshed) {
+                    return request(method, path, body, isPublic, true);
+                }
+            }
             handleAuthFailure();
             const err = new Error("Your session has expired. Please log in again.");
             err.status = 401;

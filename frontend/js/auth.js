@@ -1,14 +1,19 @@
 import { api } from './api.js';
 
 export const auth = {
-    async login(email, password) {
-        const response = await api.post('/api/auth/login', { email, password }, true);
+    _storeSession(response) {
         if (response && response.token) {
             localStorage.setItem('token', response.token);
+            if (response.refreshToken) localStorage.setItem('refreshToken', response.refreshToken);
             localStorage.setItem('name', response.name);
             localStorage.setItem('email', response.email);
             localStorage.setItem('role', response.role);
         }
+    },
+
+    async login(email, password) {
+        const response = await api.post('/api/auth/login', { email, password }, true);
+        this._storeSession(response);
         return response;
     },
 
@@ -25,12 +30,7 @@ export const auth = {
 
     async verify(email, otp) {
         const response = await api.post('/api/auth/verify', { email, otp }, true);
-        if (response && response.token) {
-            localStorage.setItem('token', response.token);
-            localStorage.setItem('name', response.name);
-            localStorage.setItem('email', response.email);
-            localStorage.setItem('role', response.role);
-        }
+        this._storeSession(response);
         return response;
     },
 
@@ -46,8 +46,14 @@ export const auth = {
         return await api.post('/api/auth/verify-otp', { email, otp }, true);
     },
 
-    logout() {
+    async logout() {
+        // Best-effort server-side revocation of the refresh token.
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (refreshToken) {
+            try { await api.post('/api/auth/logout', { refreshToken }, true); } catch (e) { /* ignore */ }
+        }
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('name');
         localStorage.removeItem('email');
         localStorage.removeItem('role');

@@ -8,7 +8,8 @@ import com.shopsphere.exception.ResourceNotFoundException;
 import com.shopsphere.mapper.OrderMapper;
 import com.shopsphere.repository.*;
 import com.shopsphere.security.SecurityUtils;
-import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,16 +17,40 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 @Service
-@RequiredArgsConstructor
 public class OrderService {
+
+    // A concurrency conflict means "someone bought/restocked the same product this instant".
+    // Under real DB contention this surfaces two ways: an optimistic-lock failure (@Version
+    // mismatch) OR an InnoDB deadlock (multiple row locks per checkout). Both are transient
+    // ConcurrencyFailureExceptions; retrying re-reads fresh stock and usually succeeds, so we
+    // surface a 409 only after exhausting attempts.
+    private static final int MAX_STOCK_CONFLICT_ATTEMPTS = 3;
 
     private final OrderRepository orderRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
     private final AddressRepository addressRepository;
     private final SecurityUtils securityUtils;
+    private final OrderService self;
+
+    public OrderService(OrderRepository orderRepository,
+                        CartItemRepository cartItemRepository,
+                        ProductRepository productRepository,
+                        AddressRepository addressRepository,
+                        SecurityUtils securityUtils,
+                        @Lazy OrderService self) {
+        this.orderRepository = orderRepository;
+        this.cartItemRepository = cartItemRepository;
+        this.productRepository = productRepository;
+        this.addressRepository = addressRepository;
+        this.securityUtils = securityUtils;
+        // Own proxy: the retry loop must call the @Transactional methods through the
+        // proxy (self-invocation via `this` would skip transaction handling entirely).
+        this.self = self;
+    }
 
     /**
      * Full checkout flow, all in ONE transaction:
@@ -36,9 +61,17 @@ public class OrderService {
      *  5. Create a mock Payment (PENDING -> SUCCESS, COD stays PENDING)
      *  6. Clear the cart
      * If anything throws, the whole thing rolls back.
+     *
+     * Retried on optimistic-lock conflicts: a concurrent checkout of the same product
+     * bumps Product.version, which fails this transaction at commit — rerunning it
+     * re-reads the fresh stock and re-validates.
      */
-    @Transactional
     public OrderResponse checkout(OrderRequest request) {
+        return withStockConflictRetry(() -> self.doCheckout(request));
+    }
+
+    @Transactional
+    public OrderResponse doCheckout(OrderRequest request) {
         User user = securityUtils.getCurrentUser();
 
         List<CartItem> cartItems = cartItemRepository.findByUserId(user.getId());
@@ -147,8 +180,13 @@ public class OrderService {
         return OrderMapper.toResponse(orderRepository.save(order));
     }
 
-    @Transactional
+    // Retried like checkout: restoring stock can conflict with a concurrent checkout.
     public OrderResponse cancelOrder(Long orderId) {
+        return withStockConflictRetry(() -> self.doCancelOrder(orderId));
+    }
+
+    @Transactional
+    public OrderResponse doCancelOrder(Long orderId) {
         User user = securityUtils.getCurrentUser();
         Order order = findOrder(orderId);
 
@@ -183,6 +221,20 @@ public class OrderService {
     }
 
     // ----- helpers -----
+
+    private OrderResponse withStockConflictRetry(Supplier<OrderResponse> action) {
+        ConcurrencyFailureException conflict = null;
+        for (int attempt = 1; attempt <= MAX_STOCK_CONFLICT_ATTEMPTS; attempt++) {
+            try {
+                return action.get();
+            } catch (ConcurrencyFailureException e) {
+                // Covers OptimisticLockingFailureException (version mismatch) and
+                // CannotAcquireLockException/DeadlockLoserDataAccessException (InnoDB deadlock).
+                conflict = e;
+            }
+        }
+        throw conflict; // handled centrally -> 409 CONFLICT
+    }
 
     private Order findOrder(Long orderId) {
         return orderRepository.findById(orderId)

@@ -93,7 +93,7 @@ function renderCartRow(item) {
 
     row.innerHTML = `
         <div class="cart-item-details">
-            <img src="${imgUrl}" class="cart-item-img" alt="${item.productName}" onerror="this.src='${fallbackImage}'">
+            <img src="${imgUrl}" class="cart-item-img" alt="${item.productName}" loading="lazy" onerror="this.src='${fallbackImage}'">
             <div>
                 <a href="product.html?id=${item.productId}" class="cart-item-title">${item.productName}</a>
             </div>

@@ -1,6 +1,7 @@
 package com.shopsphere.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -57,6 +58,16 @@ public class GlobalExceptionHandler {
         body.put("path", request.getRequestURI());
         body.put("fieldErrors", fieldErrors);
         return ResponseEntity.badRequest().body(body);
+    }
+
+    // Concurrency conflict that survived the service-layer retries (optimistic-lock version
+    // mismatch or InnoDB deadlock) when two requests race on the same product's stock.
+    @ExceptionHandler(ConcurrencyFailureException.class)
+    public ResponseEntity<ErrorResponse> handleConcurrencyConflict(ConcurrencyFailureException ex,
+                                                                   HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT,
+                "This item was updated by another request at the same moment. Please try again.",
+                request);
     }
 
     // Wrong HTTP method (e.g. opening a POST-only endpoint in the browser address bar)

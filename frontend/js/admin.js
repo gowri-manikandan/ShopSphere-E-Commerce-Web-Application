@@ -285,7 +285,7 @@ async function loadAdminProducts() {
             const fallbackImage = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjY2JkNWUxIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjEiIGQ9Ik0yLjI1IDE1YTQuNSA0LjUgMCAwMDQuNSA0LjVIMThhMy43NSAzLjc1IDAgMDAxLjMzMi03LjI1NyAzIDMgMCAwMC0zLjc1OC0zLjg0OCA1LjI1IDUuMjUgMCAwMC0xMC4yMzMgMi4zM0E0LjUwMiA0LjUwMiAwIDAwMi4yNSAxNXoiIC8+PC9zdmc+`;
             
             tr.innerHTML = `
-                <td><img src="${prod.imageUrl || fallbackImage}" class="admin-table-img" alt="${prod.name}" onerror="this.src='${fallbackImage}'"></td>
+                <td><img src="${prod.imageUrl || fallbackImage}" class="admin-table-img" alt="${prod.name}" loading="lazy" onerror="this.src='${fallbackImage}'"></td>
                 <td style="font-weight:600;">${prod.name}</td>
                 <td><span class="badge badge-info">${prod.categoryName || 'General'}</span></td>
                 <td style="font-family:var(--font-heading); font-weight:700;">₹${prod.price.toFixed(2)}</td>

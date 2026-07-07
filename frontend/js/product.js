@@ -72,7 +72,7 @@ async function loadProductDetails() {
             images.forEach((img, idx) => {
                 galleryHtml += `
                     <div class="thumbnail-item ${idx === 0 ? 'active' : ''}" data-index="${idx}">
-                        <img src="${img}" alt="${product.name} Thumbnail" onerror="this.src='${fallbackImage}'">
+                        <img src="${img}" alt="${product.name} Thumbnail" loading="lazy" onerror="this.src='${fallbackImage}'">
                     </div>
                 `;
             });

@@ -115,7 +115,7 @@ function renderOrderCard(order) {
                         const imgUrl = item.imageUrl || fallbackImage;
                         return `
                             <div class="order-item-row-simple">
-                                <img src="${imgUrl}" class="order-item-img-simple" alt="${item.productName}" onerror="this.src='${fallbackImage}'">
+                                <img src="${imgUrl}" class="order-item-img-simple" alt="${item.productName}" loading="lazy" onerror="this.src='${fallbackImage}'">
                                 <div class="order-item-info-simple">
                                     <a href="product.html?id=${item.productId}" class="order-item-name-simple" style="display:block; font-weight:600;">${item.productName}</a>
                                     <span class="order-item-meta-simple">Qty: ${item.quantity} × ₹${item.price.toFixed(2)}</span>

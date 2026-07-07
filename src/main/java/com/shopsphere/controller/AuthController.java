@@ -48,4 +48,15 @@ public class AuthController {
         authService.verifyOtpForLogin(request.getEmail(), request.getOtp());
         return ResponseEntity.ok(new com.shopsphere.dto.ApiMessage("Email verified successfully"));
     }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody com.shopsphere.dto.RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<com.shopsphere.dto.ApiMessage> logout(@Valid @RequestBody com.shopsphere.dto.RefreshTokenRequest request) {
+        authService.logout(request.getRefreshToken());
+        return ResponseEntity.ok(new com.shopsphere.dto.ApiMessage("Logged out successfully"));
+    }
 }

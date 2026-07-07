@@ -13,6 +13,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +24,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -67,8 +69,10 @@ public class AuthService {
         }
 
         String token = jwtService.generateToken(user.getEmail(), user.getRole().name());
+        String refreshToken = refreshTokenService.createForUser(user);
         return AuthResponse.builder()
                 .token(token)
+                .refreshToken(refreshToken)
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
@@ -98,12 +102,36 @@ public class AuthService {
 
         // Authenticate automatically on verification success
         String token = jwtService.generateToken(user.getEmail(), user.getRole().name());
+        String refreshToken = refreshTokenService.createForUser(user);
         return AuthResponse.builder()
                 .token(token)
+                .refreshToken(refreshToken)
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
                 .build();
+    }
+
+    /** Exchange a valid refresh token for a new access token + rotated refresh token. */
+    @Transactional
+    public AuthResponse refresh(String refreshToken) {
+        RefreshTokenService.RotationResult result = refreshTokenService.rotate(refreshToken);
+        User user = result.user();
+        String accessToken = jwtService.generateToken(user.getEmail(), user.getRole().name());
+        return AuthResponse.builder()
+                .token(accessToken)
+                .refreshToken(result.newRawToken())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .build();
+    }
+
+    /** Revoke a refresh token on logout (best-effort). */
+    public void logout(String refreshToken) {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            refreshTokenService.revoke(refreshToken);
+        }
     }
 
     public void resendOtp(String email) {

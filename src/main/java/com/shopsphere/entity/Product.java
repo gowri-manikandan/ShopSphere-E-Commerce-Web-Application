@@ -31,6 +31,12 @@ public class Product {
     @Column(name = "stock_quantity", nullable = false)
     private Integer stockQuantity;
 
+    // Optimistic lock: concurrent updates to the same product (e.g. two checkouts
+    // deducting stock) throw OptimisticLockingFailureException instead of overselling.
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 

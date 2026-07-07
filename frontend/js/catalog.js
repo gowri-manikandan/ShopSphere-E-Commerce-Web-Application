@@ -166,7 +166,7 @@ function renderProductCard(product) {
 
     card.innerHTML = `
         <div class="product-card-img-wrapper">
-            <img src="${imgUrl}" class="product-card-img" alt="${product.name}" onerror="this.src='${fallbackImage}'">
+            <img src="${imgUrl}" class="product-card-img" alt="${product.name}" loading="lazy" onerror="this.src='${fallbackImage}'">
             ${isOutOfStock ? `
                 <div class="out-of-stock-overlay">
                     <span class="out-of-stock-badge">Out of Stock</span>

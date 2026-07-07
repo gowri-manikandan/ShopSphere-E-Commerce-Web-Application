@@ -810,6 +810,12 @@
             }
         });
 
+        // Forgot Password (no reset endpoint yet -> guide the user)
+        document.getElementById('forgot-password-link').addEventListener('click', (e) => {
+            e.preventDefault();
+            showToast('Password reset is not available yet. Please contact support.', 'info');
+        });
+
         // Show/Hide password toggle logic
         togglePasswordBtn.addEventListener('click', () => {
             if (passwordInput.type === 'password') {

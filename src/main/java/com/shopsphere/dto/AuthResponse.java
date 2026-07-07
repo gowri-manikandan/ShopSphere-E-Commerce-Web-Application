@@ -10,7 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AuthResponse {
-    private String token;
+    private String token;          // short-lived access JWT
+    private String refreshToken;   // long-lived refresh token
     private String name;
     private String email;
     private String role;

@@ -56,7 +56,7 @@ async function loadCheckoutSummary() {
             const imgUrl = item.imageUrl || fallbackImage;
 
             previewRow.innerHTML = `
-                <img src="${imgUrl}" class="order-item-img-simple" alt="${item.productName}" onerror="this.src='${fallbackImage}'">
+                <img src="${imgUrl}" class="order-item-img-simple" alt="${item.productName}" loading="lazy" onerror="this.src='${fallbackImage}'">
                 <div class="order-item-info-simple">
                     <span class="order-item-name-simple" style="display:block;">${item.productName}</span>
                     <span class="order-item-meta-simple">Qty: ${item.quantity} × ₹${item.price.toFixed(2)}</span>
