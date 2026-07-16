@@ -6,8 +6,11 @@ import com.shopsphere.entity.*;
 import com.shopsphere.exception.BadRequestException;
 import com.shopsphere.exception.ResourceNotFoundException;
 import com.shopsphere.mapper.OrderMapper;
+import com.shopsphere.realtime.OrderStatusChangedEvent;
+import com.shopsphere.realtime.StockChangedEvent;
 import com.shopsphere.repository.*;
 import com.shopsphere.security.SecurityUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.stereotype.Service;
@@ -34,6 +37,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final AddressRepository addressRepository;
     private final SecurityUtils securityUtils;
+    private final ApplicationEventPublisher eventPublisher;
     private final OrderService self;
 
     public OrderService(OrderRepository orderRepository,
@@ -41,12 +45,14 @@ public class OrderService {
                         ProductRepository productRepository,
                         AddressRepository addressRepository,
                         SecurityUtils securityUtils,
+                        ApplicationEventPublisher eventPublisher,
                         @Lazy OrderService self) {
         this.orderRepository = orderRepository;
         this.cartItemRepository = cartItemRepository;
         this.productRepository = productRepository;
         this.addressRepository = addressRepository;
         this.securityUtils = securityUtils;
+        this.eventPublisher = eventPublisher;
         // Own proxy: the retry loop must call the @Transactional methods through the
         // proxy (self-invocation via `this` would skip transaction handling entirely).
         this.self = self;
@@ -104,9 +110,10 @@ public class OrderService {
                 throw new BadRequestException("Not enough stock for product: " + product.getName());
             }
 
-            // Deduct stock
+            // Deduct stock (AFTER_COMMIT listener broadcasts the new level — §5)
             product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
             productRepository.save(product);
+            eventPublisher.publishEvent(new StockChangedEvent(product.getId()));
 
             // Snapshot price at purchase time
             OrderItem orderItem = OrderItem.builder()
@@ -177,7 +184,10 @@ public class OrderService {
             throw new BadRequestException("Invalid order status: " + status);
         }
         order.setStatus(newStatus);
-        return OrderMapper.toResponse(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        eventPublisher.publishEvent(new OrderStatusChangedEvent(
+                saved.getId(), saved.getUser().getId(), newStatus.name(), LocalDateTime.now()));
+        return OrderMapper.toResponse(saved);
     }
 
     // Retried like checkout: restoring stock can conflict with a concurrent checkout.
@@ -204,18 +214,22 @@ public class OrderService {
 
         order.setStatus(OrderStatus.CANCELLED);
 
-        // Restore stock
+        // Restore stock (AFTER_COMMIT listener broadcasts the new level — §5)
         for (OrderItem item : order.getItems()) {
             Product product = item.getProduct();
             if (product != null) {
                 product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
                 productRepository.save(product);
+                eventPublisher.publishEvent(new StockChangedEvent(product.getId()));
             }
         }
 
         if (order.getPayment() != null) {
             order.getPayment().setStatus(PaymentStatus.FAILED);
         }
+
+        eventPublisher.publishEvent(new OrderStatusChangedEvent(
+                order.getId(), user.getId(), OrderStatus.CANCELLED.name(), LocalDateTime.now()));
 
         return OrderMapper.toResponse(orderRepository.save(order));
     }

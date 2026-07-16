@@ -668,6 +668,8 @@ async function loadAdminOrders() {
             const selectHtml = `
                 <select class="status-dropdown admin-status-select" data-order-id="${order.orderId}">
                     <option value="PLACED" ${order.status === 'PLACED' ? 'selected' : ''}>PLACED</option>
+                    <option value="CONFIRMED" ${order.status === 'CONFIRMED' ? 'selected' : ''}>CONFIRMED</option>
+                    <option value="PACKED" ${order.status === 'PACKED' ? 'selected' : ''}>PACKED</option>
                     <option value="SHIPPED" ${order.status === 'SHIPPED' ? 'selected' : ''}>SHIPPED</option>
                     <option value="DELIVERED" ${order.status === 'DELIVERED' ? 'selected' : ''}>DELIVERED</option>
                     <option value="CANCELLED" ${order.status === 'CANCELLED' ? 'selected' : ''}>CANCELLED</option>

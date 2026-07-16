@@ -50,6 +50,7 @@ public class AuthService {
 
         return AuthResponse.builder()
                 .token(null) // No token until verified
+                .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
@@ -73,6 +74,7 @@ public class AuthService {
         return AuthResponse.builder()
                 .token(token)
                 .refreshToken(refreshToken)
+                .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
@@ -106,6 +108,7 @@ public class AuthService {
         return AuthResponse.builder()
                 .token(token)
                 .refreshToken(refreshToken)
+                .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
@@ -121,6 +124,7 @@ public class AuthService {
         return AuthResponse.builder()
                 .token(accessToken)
                 .refreshToken(result.newRawToken())
+                .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())

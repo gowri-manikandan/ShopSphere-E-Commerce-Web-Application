@@ -11,6 +11,7 @@ import com.shopsphere.repository.ProductRepository;
 import com.shopsphere.repository.ReviewRepository;
 import com.shopsphere.repository.CartItemRepository;
 import com.shopsphere.repository.OrderItemRepository;
+import com.shopsphere.realtime.StockChangedEvent;
 import com.shopsphere.search.ProductChangedEvent;
 import com.shopsphere.search.ProductDeletedEvent;
 import lombok.RequiredArgsConstructor;
@@ -94,6 +95,8 @@ public class ProductService {
 
         Product saved = productRepository.save(product);
         eventPublisher.publishEvent(new ProductChangedEvent(saved.getId()));
+        // Admin edits may change stockQuantity — broadcast the committed level (§5)
+        eventPublisher.publishEvent(new StockChangedEvent(saved.getId()));
         return toResponseWithRating(saved);
     }
 
