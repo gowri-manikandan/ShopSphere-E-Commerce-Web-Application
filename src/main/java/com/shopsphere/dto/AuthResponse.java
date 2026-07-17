@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class AuthResponse {
     private String token;          // short-lived access JWT
     private String refreshToken;   // long-lived refresh token
+    private Long userId;           // needed client-side for /topic/orders/{userId} (§5)
     private String name;
     private String email;
     private String role;

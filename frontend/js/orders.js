@@ -1,6 +1,8 @@
 import { api } from './api.js';
+import { auth } from './auth.js';
 import { showToast, showLoader, hideLoader } from './ui.js';
 import { renderStars } from './catalog.js';
+import { subscribeWhenConnected } from './realtime.js';
 import './navbar.js';
 
 // DOM elements
@@ -10,7 +12,26 @@ const emptyOrdersState = document.getElementById('empty-orders-state');
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadOrders();
+    subscribeToLiveOrderStatus();
 });
+
+// Live order status (§5): authenticated per-user topic; badge is patched in place so
+// the open accordion / countdown state survives the update.
+async function subscribeToLiveOrderStatus() {
+    const userId = await auth.getUserId();
+    if (!userId) return; // not logged in (route guard handles that) or id unavailable
+
+    subscribeWhenConnected(`/topic/orders/${userId}`, update => {
+        const badge = ordersList.querySelector(
+            `.order-accordion-card[data-order-id="${update.orderId}"] .order-status-badge`);
+        if (!badge) {
+            loadOrders(); // order not rendered (e.g. placed in another tab) — rebuild
+            return;
+        }
+        badge.className = `badge order-status-badge ${getStatusBadgeClass(update.status)}`;
+        badge.textContent = update.status;
+    });
+}
 
 // Load user orders
 async function loadOrders() {
@@ -46,6 +67,8 @@ function getStatusBadgeClass(status) {
     switch (status?.toUpperCase()) {
         case 'DELIVERED':
             return 'badge-success';
+        case 'CONFIRMED':
+        case 'PACKED':
         case 'SHIPPED':
             return 'badge-info';
         case 'CANCELLED':
@@ -60,6 +83,7 @@ function getStatusBadgeClass(status) {
 function renderOrderCard(order) {
     const card = document.createElement('div');
     card.className = 'order-accordion-card';
+    card.dataset.orderId = order.orderId; // hook for live status updates
 
     // Format order date
     const dateObj = new Date(order.orderDate);
@@ -91,7 +115,7 @@ function renderOrderCard(order) {
             </div>
             <div>
                 <span class="order-header-label" style="display:block; margin-bottom: 2px;">Status</span>
-                <span class="badge ${badgeClass}">${order.status}</span>
+                <span class="badge order-status-badge ${badgeClass}">${order.status}</span>
             </div>
             <div style="text-align: right; font-size:13px; color: var(--text-muted); font-weight:600;">
                 ${itemsCount} ${itemsCount === 1 ? 'item' : 'items'}

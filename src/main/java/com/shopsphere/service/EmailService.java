@@ -24,9 +24,24 @@ public class EmailService {
                 + "This OTP is valid for 15 minutes.\n\n"
                 + "If you did not register for an account, please ignore this email.";
 
-        // Always print prominently in console logs for testing ease
+        send(toEmail, subject, messageText, otp, "EMAIL VERIFICATION OTP");
+    }
+
+    public void sendPasswordResetEmail(String toEmail, String otp) {
+        String subject = "Reset Your ShopSphere Password";
+        String messageText = "We received a request to reset your ShopSphere password.\n\n"
+                + "Your password reset OTP code is: " + otp + "\n\n"
+                + "This OTP is valid for 5 minutes.\n\n"
+                + "If you did not request a password reset, you can safely ignore this email — "
+                + "your password will not be changed.";
+
+        send(toEmail, subject, messageText, otp, "PASSWORD RESET OTP");
+    }
+
+    /** Sends via SMTP when configured; always prints the OTP to the console for local testing. */
+    private void send(String toEmail, String subject, String messageText, String otp, String consoleLabel) {
         System.out.println("=================================================");
-        System.out.println("EMAIL VERIFICATION OTP FOR " + toEmail + ": " + otp);
+        System.out.println(consoleLabel + " FOR " + toEmail + ": " + otp);
         System.out.println("=================================================");
 
         try {
@@ -37,7 +52,7 @@ public class EmailService {
                 message.setText(messageText);
                 message.setFrom("no-reply@shopsphere.com");
                 mailSender.send(message);
-                log.info("Verification email successfully sent to {}", toEmail);
+                log.info("Email '{}' successfully sent to {}", subject, toEmail);
             } else {
                 log.info("JavaMailSender is not configured. OTP printed to console log only.");
             }

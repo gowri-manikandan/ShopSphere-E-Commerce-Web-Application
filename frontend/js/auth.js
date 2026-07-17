@@ -5,10 +5,27 @@ export const auth = {
         if (response && response.token) {
             localStorage.setItem('token', response.token);
             if (response.refreshToken) localStorage.setItem('refreshToken', response.refreshToken);
+            if (response.userId != null) localStorage.setItem('userId', String(response.userId));
             localStorage.setItem('name', response.name);
             localStorage.setItem('email', response.email);
             localStorage.setItem('role', response.role);
         }
+    },
+
+    // Numeric user id needed for the /topic/orders/{userId} subscription (§5).
+    // Sessions created before userId was added to AuthResponse fall back to the profile API.
+    async getUserId() {
+        const cached = localStorage.getItem('userId');
+        if (cached) return Number(cached);
+        if (!this.isAuthenticated()) return null;
+        try {
+            const profile = await api.get('/api/users/profile');
+            if (profile && profile.id != null) {
+                localStorage.setItem('userId', String(profile.id));
+                return profile.id;
+            }
+        } catch (e) { /* stay null — realtime features simply stay off */ }
+        return null;
     },
 
     async login(email, password) {
@@ -46,6 +63,22 @@ export const auth = {
         return await api.post('/api/auth/verify-otp', { email, otp }, true);
     },
 
+    // ----- Forgot password -----
+    async requestPasswordReset(email) {
+        return await api.post('/api/auth/forgot-password', { email }, true);
+    },
+
+    async resetPassword(email, otp, newPassword, confirmPassword) {
+        return await api.post('/api/auth/reset-password', { email, otp, newPassword, confirmPassword }, true);
+    },
+
+    // ----- Google sign-in -----
+    async google(idToken) {
+        const response = await api.post('/api/auth/google', { idToken }, true);
+        this._storeSession(response);
+        return response;
+    },
+
     async logout() {
         // Best-effort server-side revocation of the refresh token.
         const refreshToken = localStorage.getItem('refreshToken');
@@ -54,6 +87,7 @@ export const auth = {
         }
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userId');
         localStorage.removeItem('name');
         localStorage.removeItem('email');
         localStorage.removeItem('role');

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ShopSphere Help Center — answers to common questions about orders, payments, shipping and your account.">
+    <title>Help Center — ShopSphere</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header id="navbar-container"></header>
+
+    <main class="container">
+        <button type="button" class="back-link" onclick="history.length > 1 ? history.back() : (window.location.href='index.html')">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" width="16" height="16">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+            Back
+        </button>
+
+        <div class="info-page">
+            <h1>Help Center</h1>
+            <p class="info-updated">Find quick answers to the most common questions about shopping on ShopSphere.</p>
+
+            <h2>Ordering</h2>
+            <p>Browse the catalog, open a product, choose a quantity and add it to your cart. When you're ready,
+               open your cart and proceed to checkout. You'll need to be signed in to place an order.</p>
+
+            <h2>Payments</h2>
+            <p>At checkout you can choose Card, UPI, Net Banking, or Cash on Delivery. Card, UPI and Net Banking
+               orders are confirmed immediately; Cash on Delivery is collected when your order is delivered.</p>
+
+            <h2>Order status &amp; tracking</h2>
+            <p>Open <a href="orders.html">My Orders</a> to see every order and its current status
+               (Placed, Confirmed, Packed, Shipped, Delivered, or Cancelled). Status updates appear in real time
+               while the page is open — no refresh needed.</p>
+
+            <h2>Cancellations</h2>
+            <p>You can cancel an order yourself within 24 hours of placing it, as long as it hasn't shipped, from
+               the <a href="orders.html">My Orders</a> page. Stock is returned automatically when an order is cancelled.</p>
+
+            <h2>Your account</h2>
+            <ul>
+                <li>Update your name and profile photo, and manage shipping addresses, from <a href="profile.html">My Profile</a>.</li>
+                <li>Forgot your password? Use the <a href="forgot-password.html">reset link</a> on the sign-in page.</li>
+                <li>You can sign in with email and password, or with your Google account.</li>
+            </ul>
+
+            <h2>Still need help?</h2>
+            <p>Email us at <a href="mailto:support@shopsphere.com">support@shopsphere.com</a> and we'll get back to you as soon as we can.</p>
+        </div>
+    </main>
+
+    <script type="module" src="js/navbar.js"></script>
+</body>
+</html>

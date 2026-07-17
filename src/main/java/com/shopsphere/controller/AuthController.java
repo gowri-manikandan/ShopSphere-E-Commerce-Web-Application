@@ -49,6 +49,28 @@ public class AuthController {
         return ResponseEntity.ok(new com.shopsphere.dto.ApiMessage("Email verified successfully"));
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<com.shopsphere.dto.ApiMessage> forgotPassword(
+            @Valid @RequestBody com.shopsphere.dto.ForgotPasswordRequest request) {
+        authService.sendPasswordResetOtp(request.getEmail());
+        // Always a generic response so this can't be used to probe which emails exist.
+        return ResponseEntity.ok(new com.shopsphere.dto.ApiMessage(
+                "If an account exists for that email, a reset code has been sent."));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<com.shopsphere.dto.ApiMessage> resetPassword(
+            @Valid @RequestBody com.shopsphere.dto.ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok(new com.shopsphere.dto.ApiMessage(
+                "Password reset successfully. You can now log in with your new password."));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> google(@Valid @RequestBody com.shopsphere.dto.GoogleSignInRequest request) {
+        return ResponseEntity.ok(authService.googleSignIn(request.getIdToken()));
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody com.shopsphere.dto.RefreshTokenRequest request) {
         return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));

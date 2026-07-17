@@ -75,11 +75,13 @@ async function request(method, path, body = null, isPublic = false, _retry = fal
     try {
         const response = await fetch(url, options);
 
-        // 401 = expired/invalid access token. Try a one-time silent refresh, then
-        // retry the original request. If refresh fails -> clear session + redirect.
-        // 403 (forbidden) is a legitimate authorization denial and must NOT log out.
-        if (response.status === 401) {
-            if (!isPublic && !_retry) {
+        // 401 on an AUTHENTICATED request = expired/invalid access token: try a one-time
+        // silent refresh, retry once, and if that fails clear the session + redirect.
+        // Public requests (login, register, OTP) are NOT sessions — a 401 there is a real
+        // response (e.g. bad credentials), so fall through to normal error parsing below so
+        // the backend message survives. 403 is a legit authz denial and must NOT log out.
+        if (response.status === 401 && !isPublic) {
+            if (!_retry) {
                 const refreshed = await tryRefresh();
                 if (refreshed) {
                     return request(method, path, body, isPublic, true);

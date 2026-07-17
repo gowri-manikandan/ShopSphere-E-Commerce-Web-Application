@@ -54,6 +54,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/search/**").permitAll()
+                // SockJS handshake + transport fallbacks; STOMP frames are authorized
+                // by StompAuthChannelInterceptor, not the HTTP chain
+                .requestMatchers("/ws/**").permitAll()
                 // Admin-only endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")

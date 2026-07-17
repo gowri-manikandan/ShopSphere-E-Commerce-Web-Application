@@ -3,6 +3,7 @@ import { auth } from './auth.js';
 import { showToast } from './ui.js';
 import { getProductSkeleton, showLoader, hideLoader } from './ui.js';
 import { refreshCartCount } from './navbar.js';
+import { subscribeWhenConnected } from './realtime.js';
 
 // DOM elements
 const productGrid = document.getElementById('product-grid');
@@ -15,6 +16,7 @@ const resetFiltersBtn = document.getElementById('reset-filters-btn');
 let activeCategoryId = null;
 let searchQuery = '';
 let debounceTimeout = null;
+let stockSubscriptions = []; // live-stock handles for the currently rendered grid
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -127,11 +129,41 @@ async function loadProducts() {
             const card = renderProductCard(product);
             productGrid.appendChild(card);
         });
+        subscribeToLiveStock(products);
     } catch (err) {
         productGrid.innerHTML = '';
         showToast(err.message || 'Failed to load products', 'error');
         console.error(err);
     }
+}
+
+// Live stock (§5): one topic per rendered product; old handles are released on every
+// re-render so grid rebuilds (search/filter) never leak subscriptions (§13).
+function subscribeToLiveStock(products) {
+    stockSubscriptions.forEach(sub => sub.unsubscribe());
+    stockSubscriptions = products.map(product =>
+        subscribeWhenConnected(`/topic/stock/${product.id}`, applyLiveStockToCard));
+}
+
+function applyLiveStockToCard(update) {
+    const card = productGrid.querySelector(`.product-card[data-product-id="${update.productId}"]`);
+    if (!card) return;
+
+    const isOut = update.status === 'OUT_OF_STOCK' || update.availableStock <= 0;
+    const imgWrapper = card.querySelector('.product-card-img-wrapper');
+    let overlay = card.querySelector('.out-of-stock-overlay');
+
+    if (isOut && !overlay && imgWrapper) {
+        overlay = document.createElement('div');
+        overlay.className = 'out-of-stock-overlay';
+        overlay.innerHTML = '<span class="out-of-stock-badge">Out of Stock</span>';
+        imgWrapper.appendChild(overlay);
+    } else if (!isOut && overlay) {
+        overlay.remove();
+    }
+
+    const cartBtn = card.querySelector('.add-to-cart-btn');
+    if (cartBtn) cartBtn.disabled = isOut;
 }
 
 // Render rating stars SVG
@@ -157,7 +189,8 @@ export function renderStars(rating) {
 function renderProductCard(product) {
     const card = document.createElement('div');
     card.className = 'product-card';
-    
+    card.dataset.productId = product.id; // hook for live stock updates
+
     const isOutOfStock = product.stockQuantity <= 0;
     
     // Default image if null

@@ -3,6 +3,7 @@ import { auth } from './auth.js';
 import { showToast, showLoader, hideLoader } from './ui.js';
 import { renderStars } from './catalog.js';
 import { refreshCartCount } from './navbar.js';
+import { subscribeWhenConnected } from './realtime.js';
 
 // Get Product ID from URL
 const urlParams = new URLSearchParams(window.location.search);
@@ -31,7 +32,43 @@ document.addEventListener('DOMContentLoaded', () => {
     loadProductDetails();
     loadReviews();
     setupReviewForm();
+    subscribeToLiveStock();
 });
+
+// Live stock updates (§5): patch the stock line + action buttons in place, no reload.
+function subscribeToLiveStock() {
+    subscribeWhenConnected(`/topic/stock/${productId}`, update => {
+        if (String(update.productId) !== String(productId)) return;
+        if (currentProduct) currentProduct.stockQuantity = update.availableStock;
+        applyStockState(update.availableStock, update.status);
+    });
+}
+
+function applyStockState(availableStock, status) {
+    const stockBlock = document.getElementById('stock-status');
+    if (!stockBlock) return; // details not rendered yet; initial render uses fresh data anyway
+
+    const isOut = status === 'OUT_OF_STOCK' || availableStock <= 0;
+    const lowNote = status === 'LOW_STOCK' ? ' — only a few left!' : '';
+    stockBlock.innerHTML = `
+        <span class="stock-dot ${isOut ? 'out-of-stock' : 'in-stock'}"></span>
+        <span style="color: ${isOut ? 'var(--danger)' : 'var(--success)'};">
+            ${isOut ? 'Out of stock' : `In stock (${availableStock} available)${lowNote}`}
+        </span>
+    `;
+
+    ['qty-minus', 'qty-plus', 'add-cart-btn'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = isOut;
+    });
+
+    // Clamp a selected quantity that no longer fits the new stock level
+    const qtyEl = document.getElementById('qty-value');
+    if (qtyEl && !isOut && currentQuantity > availableStock) {
+        currentQuantity = availableStock;
+        qtyEl.value = String(currentQuantity);
+    }
+}
 
 // Load Product Info
 async function loadProductDetails() {
@@ -98,7 +135,7 @@ async function loadProductDetails() {
                 
                 <p class="details-desc">${product.description || 'No description available for this product.'}</p>
                 
-                <div class="details-stock-status">
+                <div class="details-stock-status" id="stock-status">
                     <span class="stock-dot ${isOutOfStock ? 'out-of-stock' : 'in-stock'}"></span>
                     <span style="color: ${isOutOfStock ? 'var(--danger)' : 'var(--success)'};">
                         ${isOutOfStock ? 'Out of stock' : `In stock (${product.stockQuantity} available)`}

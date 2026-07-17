@@ -3,10 +3,12 @@ package com.shopsphere.service;
 import com.shopsphere.dto.AuthResponse;
 import com.shopsphere.dto.LoginRequest;
 import com.shopsphere.dto.RegisterRequest;
+import com.shopsphere.entity.AuthProvider;
 import com.shopsphere.entity.Role;
 import com.shopsphere.entity.User;
 import com.shopsphere.exception.BadRequestException;
 import com.shopsphere.repository.UserRepository;
+import com.shopsphere.security.GoogleTokenVerifier;
 import com.shopsphere.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,6 +27,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
     private final RefreshTokenService refreshTokenService;
+    private final GoogleTokenVerifier googleTokenVerifier;
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -50,6 +53,7 @@ public class AuthService {
 
         return AuthResponse.builder()
                 .token(null) // No token until verified
+                .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
@@ -73,6 +77,7 @@ public class AuthService {
         return AuthResponse.builder()
                 .token(token)
                 .refreshToken(refreshToken)
+                .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
@@ -106,6 +111,7 @@ public class AuthService {
         return AuthResponse.builder()
                 .token(token)
                 .refreshToken(refreshToken)
+                .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
@@ -121,6 +127,7 @@ public class AuthService {
         return AuthResponse.builder()
                 .token(accessToken)
                 .refreshToken(result.newRawToken())
+                .userId(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
@@ -222,5 +229,133 @@ public class AuthService {
         user.setOtpVerificationAttempts(0);
         user.setOtpResendAttempts(0);
         userRepository.save(user);
+    }
+
+    // ===== Forgot password / reset =====
+
+    /**
+     * Send a password-reset OTP. Reuses the login-OTP machinery (60s throttle, max-3 resend,
+     * SecureRandom 6-digit, BCrypt-hashed, 5-min expiry). Non-enumerating: an unknown email
+     * returns normally so callers can't probe which emails are registered.
+     */
+    public void sendPasswordResetOtp(String email) {
+        var maybeUser = userRepository.findByEmail(email);
+        if (maybeUser.isEmpty()) {
+            return; // silently succeed — don't reveal whether the email exists
+        }
+        User user = maybeUser.get();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+        // 60-second throttle between requests
+        if (user.getLastOtpRequestedAt() != null &&
+            user.getLastOtpRequestedAt().plusSeconds(60).isAfter(now)) {
+            long secondsLeft = java.time.Duration.between(now, user.getLastOtpRequestedAt().plusSeconds(60)).getSeconds();
+            throw new BadRequestException("Please wait " + (secondsLeft > 0 ? secondsLeft : 60) + " seconds before requesting another OTP.");
+        }
+
+        // Max 3 resends within a live OTP window
+        if (user.getVerificationOtpExpiry() == null || user.getVerificationOtpExpiry().isBefore(now)) {
+            user.setOtpResendAttempts(0);
+        } else {
+            if (user.getOtpResendAttempts() >= 3) {
+                throw new BadRequestException("Maximum OTP resend attempts (3) exceeded. Please try again later.");
+            }
+            user.setOtpResendAttempts(user.getOtpResendAttempts() + 1);
+        }
+
+        java.security.SecureRandom secureRandom = new java.security.SecureRandom();
+        String otp = String.format("%06d", secureRandom.nextInt(1000000));
+
+        user.setVerificationOtp(passwordEncoder.encode(otp));
+        user.setVerificationOtpExpiry(now.plusMinutes(5));
+        user.setLastOtpRequestedAt(now);
+        user.setOtpVerificationAttempts(0);
+        userRepository.save(user);
+
+        emailService.sendPasswordResetEmail(user.getEmail(), otp);
+    }
+
+    /**
+     * Verify the reset OTP and set a new password. Enforces the strong-password policy and the
+     * 5-attempt cap. Does not auto-login — the UI redirects to the login page afterwards.
+     */
+    public void resetPassword(com.shopsphere.dto.ResetPasswordRequest request) {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new BadRequestException("Passwords do not match.");
+        }
+        validatePasswordStrength(request.getNewPassword());
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new BadRequestException("Invalid or expired reset request."));
+
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+        if (user.getOtpVerificationAttempts() >= 5) {
+            throw new BadRequestException("Maximum verification attempts (5) exceeded. Please request a new OTP.");
+        }
+        user.setOtpVerificationAttempts(user.getOtpVerificationAttempts() + 1);
+        userRepository.save(user);
+
+        if (user.getVerificationOtpExpiry() == null || user.getVerificationOtpExpiry().isBefore(now)) {
+            throw new BadRequestException("OTP expired. Please request a new one.");
+        }
+        if (user.getVerificationOtp() == null || !passwordEncoder.matches(request.getOtp(), user.getVerificationOtp())) {
+            throw new BadRequestException("Invalid OTP.");
+        }
+
+        // Success: set new password, clear all OTP tracking
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setVerificationOtp(null);
+        user.setVerificationOtpExpiry(null);
+        user.setLastOtpRequestedAt(null);
+        user.setOtpVerificationAttempts(0);
+        user.setOtpResendAttempts(0);
+        userRepository.save(user);
+    }
+
+    // ===== Google sign-in =====
+
+    /**
+     * Verify a Google ID token and log the user in, creating a GOOGLE-provider account on first
+     * sign-in. Existing accounts (any provider) with the same email are logged in as-is.
+     */
+    public AuthResponse googleSignIn(String idToken) {
+        GoogleTokenVerifier.GoogleUser g = googleTokenVerifier.verify(idToken);
+
+        User user = userRepository.findByEmail(g.email()).orElseGet(() ->
+                userRepository.save(User.builder()
+                        .name(g.name() != null && !g.name().isBlank() ? g.name() : g.email())
+                        .email(g.email())
+                        .password(null) // Google accounts have no local password
+                        .role(Role.CUSTOMER)
+                        .provider(AuthProvider.GOOGLE)
+                        .emailVerified(true)
+                        .build()));
+
+        String token = jwtService.generateToken(user.getEmail(), user.getRole().name());
+        String refreshToken = refreshTokenService.createForUser(user);
+        return AuthResponse.builder()
+                .token(token)
+                .refreshToken(refreshToken)
+                .userId(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .build();
+    }
+
+    /** Strong-password policy: 8+ chars with upper, lower, digit and special character. */
+    private void validatePasswordStrength(String password) {
+        boolean ok = password != null
+                && password.length() >= 8
+                && password.matches(".*[A-Z].*")
+                && password.matches(".*[a-z].*")
+                && password.matches(".*[0-9].*")
+                && password.matches(".*[^A-Za-z0-9].*");
+        if (!ok) {
+            throw new BadRequestException(
+                    "Password must be at least 8 characters and include an uppercase letter, "
+                    + "a lowercase letter, a number, and a special character.");
+        }
     }
 }

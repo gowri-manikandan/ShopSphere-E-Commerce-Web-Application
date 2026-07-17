@@ -5,8 +5,11 @@ import com.shopsphere.dto.OrderResponse;
 import com.shopsphere.entity.*;
 import com.shopsphere.exception.BadRequestException;
 import com.shopsphere.exception.ResourceNotFoundException;
+import com.shopsphere.realtime.OrderStatusChangedEvent;
+import com.shopsphere.realtime.StockChangedEvent;
 import com.shopsphere.repository.*;
 import com.shopsphere.security.SecurityUtils;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +43,7 @@ class OrderServiceTest {
     @Mock ProductRepository productRepository;
     @Mock AddressRepository addressRepository;
     @Mock SecurityUtils securityUtils;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     OrderService orderService;
 
@@ -49,7 +53,7 @@ class OrderServiceTest {
     @BeforeEach
     void setUp() {
         orderService = new OrderService(orderRepository, cartItemRepository,
-                productRepository, addressRepository, securityUtils, null);
+                productRepository, addressRepository, securityUtils, eventPublisher, null);
         user = User.builder().id(1L).email("buyer@shopsphere.com").name("Buyer").build();
         address = Address.builder().id(5L).user(user).line1("1 Main St").city("Metropolis")
                 .pincode("600001").build();
@@ -248,5 +252,65 @@ class OrderServiceTest {
         assertThatThrownBy(() -> orderService.doCancelOrder(100L))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("24 hours");
+    }
+
+    // ----- real-time event publishing (§5) -----
+
+    @Test
+    void doCheckout_publishesStockChangedEventPerItem() {
+        Product a = product(10L, "100.00", 50);
+        Product b = product(11L, "200.00", 20);
+        when(securityUtils.getCurrentUser()).thenReturn(user);
+        when(cartItemRepository.findByUserId(1L)).thenReturn(List.of(cartItem(a, 2), cartItem(b, 1)));
+        when(addressRepository.findById(5L)).thenReturn(Optional.of(address));
+        when(productRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        orderService.doCheckout(request("CARD"));
+
+        ArgumentCaptor<Object> events = ArgumentCaptor.forClass(Object.class);
+        verify(eventPublisher, times(2)).publishEvent(events.capture());
+        assertThat(events.getAllValues())
+                .containsExactlyInAnyOrder(new StockChangedEvent(10L), new StockChangedEvent(11L));
+    }
+
+    @Test
+    void doCancelOrder_publishesStockRestoreAndCancelledStatusEvents() {
+        Product p = product(10L, "100.00", 5);
+        Order order = placedOrder(LocalDateTime.now().minusHours(1), p, 2);
+        when(securityUtils.getCurrentUser()).thenReturn(user);
+        when(orderRepository.findById(100L)).thenReturn(Optional.of(order));
+        when(productRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        orderService.doCancelOrder(100L);
+
+        ArgumentCaptor<Object> events = ArgumentCaptor.forClass(Object.class);
+        verify(eventPublisher, times(2)).publishEvent(events.capture());
+        assertThat(events.getAllValues().get(0)).isEqualTo(new StockChangedEvent(10L));
+        assertThat(events.getAllValues().get(1)).isInstanceOfSatisfying(OrderStatusChangedEvent.class, e -> {
+            assertThat(e.orderId()).isEqualTo(100L);
+            assertThat(e.userId()).isEqualTo(1L);
+            assertThat(e.status()).isEqualTo("CANCELLED");
+        });
+    }
+
+    @Test
+    void updateStatus_publishesOrderStatusChangedEvent() {
+        Product p = product(10L, "100.00", 5);
+        Order order = placedOrder(LocalDateTime.now().minusHours(1), p, 1);
+        when(orderRepository.findById(100L)).thenReturn(Optional.of(order));
+        when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        orderService.updateStatus(100L, "shipped");
+
+        ArgumentCaptor<Object> events = ArgumentCaptor.forClass(Object.class);
+        verify(eventPublisher).publishEvent(events.capture());
+        assertThat(events.getValue()).isInstanceOfSatisfying(OrderStatusChangedEvent.class, e -> {
+            assertThat(e.orderId()).isEqualTo(100L);
+            assertThat(e.userId()).isEqualTo(1L);
+            assertThat(e.status()).isEqualTo("SHIPPED");
+            assertThat(e.updatedAt()).isNotNull();
+        });
     }
 }

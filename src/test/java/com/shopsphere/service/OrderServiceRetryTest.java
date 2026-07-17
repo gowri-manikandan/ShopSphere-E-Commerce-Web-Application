@@ -31,7 +31,7 @@ class OrderServiceRetryTest {
     @BeforeEach
     void setUp() {
         // Only the retry wrapper + `self` are exercised here; repos are never touched.
-        orderService = new OrderService(null, null, null, null, null, self);
+        orderService = new OrderService(null, null, null, null, null, null, self);
     }
 
     private OrderRequest request() {

@@ -60,27 +60,43 @@ export function renderNavbar() {
             <div class="nav-menu">
                 <ul class="nav-links">
                     <li><a href="index.html" class="nav-link ${path === 'index.html' ? 'active' : ''}">Catalog</a></li>
-                    ${isLoggedIn ? `
-                        <li><a href="profile.html" class="nav-link ${path === 'profile.html' ? 'active' : ''}">My Profile</a></li>
-                        ${!isAdmin ? `<li><a href="orders.html" class="nav-link ${path === 'orders.html' ? 'active' : ''}">My Orders</a></li>` : ''}
-                        ${isAdmin ? `<li><a href="admin.html" class="nav-link ${path === 'admin.html' ? 'active' : ''}">Admin Dashboard</a></li>` : ''}
-                    ` : ''}
+                    ${isLoggedIn && !isAdmin ? `<li><a href="orders.html" class="nav-link ${path === 'orders.html' ? 'active' : ''}">My Orders</a></li>` : ''}
+                    ${isAdmin ? `<li><a href="admin.html" class="nav-link ${path === 'admin.html' ? 'active' : ''}">Admin Dashboard</a></li>` : ''}
                 </ul>
-                
+
                 <div class="nav-actions">
                     ${!isAdmin ? `
-                    <a href="cart.html" class="cart-btn ${path === 'cart.html' ? 'active' : ''}">
+                    <a href="cart.html" class="cart-btn ${path === 'cart.html' ? 'active' : ''}" aria-label="Shopping cart">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="22" height="22">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
                         </svg>
                         <span class="cart-badge">0</span>
                     </a>
                     ` : ''}
-                    
+
                     ${isLoggedIn ? `
-                        <div class="user-info">
-                            <span class="user-greeting">Hi, ${user.name.split(' ')[0]}</span>
-                            <button id="nav-logout-btn" class="btn btn-outline btn-sm">Logout</button>
+                        <div class="profile-menu" id="profile-menu">
+                            <button class="profile-trigger" id="profile-trigger" aria-haspopup="true" aria-expanded="false">
+                                <span class="nav-avatar" id="nav-avatar">${avatarMarkup(user)}</span>
+                                <span class="nav-username">${escapeHtml(user.name.split(' ')[0])}</span>
+                                <svg class="profile-caret" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" width="14" height="14">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                </svg>
+                            </button>
+                            <div class="profile-dropdown" id="profile-dropdown" role="menu">
+                                <a href="profile.html" class="dropdown-item" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    My Profile
+                                </a>
+                                <button class="dropdown-item" id="nav-logout-btn" role="menuitem">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                                    </svg>
+                                    Logout
+                                </button>
+                            </div>
                         </div>
                     ` : `
                         <a href="login.html" class="btn btn-outline btn-sm">Login</a>
@@ -94,11 +110,28 @@ export function renderNavbar() {
     // Interactive mobile collapse
     const toggle = header.querySelector('.nav-toggle');
     const menu = header.querySelector('.nav-menu');
-    
+
     toggle.addEventListener('click', () => {
         menu.classList.toggle('nav-menu-open');
         toggle.classList.toggle('toggle-active');
     });
+
+    // Profile dropdown toggle + outside-click close
+    const profileMenu = header.querySelector('#profile-menu');
+    if (profileMenu) {
+        const trigger = profileMenu.querySelector('#profile-trigger');
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const open = profileMenu.classList.toggle('open');
+            trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        document.addEventListener('click', (e) => {
+            if (!profileMenu.contains(e.target)) {
+                profileMenu.classList.remove('open');
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
 
     // Logout handling
     const logoutBtn = header.querySelector('#nav-logout-btn');
@@ -109,11 +142,50 @@ export function renderNavbar() {
         });
     }
 
-    // Load initial cart count
+    // Load initial cart count + real profile photo
     refreshCartCount();
-    
+    refreshUserAvatar();
+
     // Render dynamic footer
     renderFooter();
+}
+
+// Build the avatar inner markup: cached profile photo if available, else the user's initial.
+function avatarMarkup(user) {
+    const initial = escapeHtml((user.name || 'U').trim().charAt(0).toUpperCase() || 'U');
+    const url = localStorage.getItem('profileImageUrl');
+    if (url) {
+        return `<img src="${escapeHtml(url)}" alt="" class="nav-avatar-img"
+                     onerror="this.remove()">`;
+    }
+    return initial;
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+}
+
+// Fetch the user's profile once to show their real photo + keep the name fresh.
+async function refreshUserAvatar() {
+    if (!auth.isAuthenticated()) return;
+    try {
+        const profile = await api.get('/api/users/profile');
+        if (!profile) return;
+        if (profile.name) localStorage.setItem('name', profile.name);
+        const avatar = document.getElementById('nav-avatar');
+        if (profile.profileImageUrl) {
+            localStorage.setItem('profileImageUrl', profile.profileImageUrl);
+            if (avatar) {
+                avatar.innerHTML = `<img src="${escapeHtml(profile.profileImageUrl)}" alt="" class="nav-avatar-img" onerror="this.remove()">`;
+            }
+        } else {
+            localStorage.removeItem('profileImageUrl');
+        }
+    } catch (err) {
+        /* non-fatal: keep the initials avatar */
+    }
 }
 
 // Render dynamic footer
@@ -126,7 +198,7 @@ export function renderFooter() {
     }
     footer.innerHTML = `
         <div class="container">
-            <div class="footer-grid">
+            <div class="footer-top">
                 <div class="footer-brand">
                     <h4>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" width="22" height="22">
@@ -134,32 +206,15 @@ export function renderFooter() {
                         </svg>
                         ShopSphere
                     </h4>
-                    <p style="margin-top: 10px; max-width: 280px; color: #94a3b8; font-size: 13px;">Your modern, state-of-the-art e-commerce destination for premium gadgets, fashion, and books.</p>
+                    <p>Your modern, state-of-the-art e-commerce destination for premium gadgets, fashion, and books.</p>
                 </div>
-                <div class="footer-col">
-                    <h5 style="color: #ffffff; font-size: 15px; margin-bottom: 12px;">Shop</h5>
-                    <div class="footer-links">
-                        <a href="index.html" class="footer-link">Catalog</a>
-                        <a href="index.html" class="footer-link">Electronics</a>
-                        <a href="index.html" class="footer-link">Fashion</a>
-                    </div>
-                </div>
-                <div class="footer-col">
-                    <h5 style="color: #ffffff; font-size: 15px; margin-bottom: 12px;">Support</h5>
-                    <div class="footer-links">
-                        <a href="#" class="footer-link">Help Center</a>
-                        <a href="#" class="footer-link">Privacy Policy</a>
-                        <a href="#" class="footer-link">Terms of Service</a>
-                    </div>
-                </div>
-                <div class="footer-col">
-                    <h5 style="color: #ffffff; font-size: 15px; margin-bottom: 12px;">Account</h5>
-                    <div class="footer-links">
-                        <a href="profile.html" class="footer-link">My Profile</a>
-                        <a href="orders.html" class="footer-link">My Orders</a>
-                        <a href="cart.html" class="footer-link">Shopping Cart</a>
-                    </div>
-                </div>
+                <nav class="footer-support" aria-label="Support">
+                    <a href="help-center.html" class="footer-link">Help Center</a>
+                    <span class="footer-sep">·</span>
+                    <a href="privacy-policy.html" class="footer-link">Privacy Policy</a>
+                    <span class="footer-sep">·</span>
+                    <a href="terms-of-service.html" class="footer-link">Terms of Service</a>
+                </nav>
             </div>
             <div class="footer-bottom">
                 &copy; 2026 ShopSphere. All rights reserved. Built with premium design standards.
