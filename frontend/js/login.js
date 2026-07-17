@@ -4,6 +4,7 @@ import { initThemeToggle } from './theme.js';
 import './navbar.js';
 import { auth } from './auth.js';
 import { showToast } from './ui.js';
+import { GOOGLE_CLIENT_ID } from './config.js';
 
 const loginForm = document.getElementById('login-form');
 const emailInput = document.getElementById('email-input');
@@ -48,11 +49,41 @@ togglePasswordBtn.addEventListener('click', () => {
 // Placeholders for features shipping in later slices
 document.getElementById('forgot-password-link').addEventListener('click', (e) => {
     e.preventDefault();
-    showToast('Password reset is coming soon.', 'info');
+    window.location.href = 'forgot-password.html';
 });
-document.getElementById('google-btn').addEventListener('click', () => {
-    showToast('Google sign-in is coming soon.', 'info');
-});
+// Google Sign-In: real flow when GOOGLE_CLIENT_ID is configured, else a placeholder.
+const googleBtn = document.getElementById('google-btn');
+function redirectAfterAuth() {
+    const redirectPath = new URLSearchParams(window.location.search).get('redirect');
+    window.location.href = redirectPath ? decodeURIComponent(redirectPath) : 'index.html';
+}
+async function onGoogleCredential(response) {
+    try {
+        const res = await auth.google(response.credential);
+        showToast(`Welcome, ${res.name}!`, 'success');
+        setTimeout(redirectAfterAuth, 600);
+    } catch (err) {
+        showToast((err.details && err.details.message) || err.message || 'Google sign-in failed.', 'error');
+    }
+}
+
+if (GOOGLE_CLIENT_ID) {
+    // Google's GSI script is loaded async in the page head; wait for it to be ready.
+    const waitForGsi = setInterval(() => {
+        if (window.google && window.google.accounts && window.google.accounts.id) {
+            clearInterval(waitForGsi);
+            window.google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: onGoogleCredential
+            });
+            googleBtn.addEventListener('click', () => window.google.accounts.id.prompt());
+        }
+    }, 200);
+} else {
+    googleBtn.addEventListener('click', () => {
+        showToast('Google sign-in is not configured yet.', 'info');
+    });
+}
 
 function setLoading(loading) {
     submitBtn.disabled = loading;

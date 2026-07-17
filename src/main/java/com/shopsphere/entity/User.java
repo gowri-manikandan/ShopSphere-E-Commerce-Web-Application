@@ -24,12 +24,17 @@ public class User {
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
-    @Column(nullable = false)
-    private String password; // BCrypt hash
+    @Column(nullable = true)
+    private String password; // BCrypt hash; null for GOOGLE-provider accounts
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private AuthProvider provider = AuthProvider.LOCAL;
 
     @Column(name = "profile_image_url", length = 500)
     private String profileImageUrl;

@@ -63,6 +63,22 @@ export const auth = {
         return await api.post('/api/auth/verify-otp', { email, otp }, true);
     },
 
+    // ----- Forgot password -----
+    async requestPasswordReset(email) {
+        return await api.post('/api/auth/forgot-password', { email }, true);
+    },
+
+    async resetPassword(email, otp, newPassword, confirmPassword) {
+        return await api.post('/api/auth/reset-password', { email, otp, newPassword, confirmPassword }, true);
+    },
+
+    // ----- Google sign-in -----
+    async google(idToken) {
+        const response = await api.post('/api/auth/google', { idToken }, true);
+        this._storeSession(response);
+        return response;
+    },
+
     async logout() {
         // Best-effort server-side revocation of the refresh token.
         const refreshToken = localStorage.getItem('refreshToken');
