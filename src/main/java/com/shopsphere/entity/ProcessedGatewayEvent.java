@@ -6,20 +6,20 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * Idempotency ledger for Stripe webhooks (§9). Stripe retries webhook delivery, so every
- * event id we successfully process is recorded here and re-deliveries are ignored — an
+ * Idempotency ledger for payment-gateway webhooks (§9). Razorpay retries webhook delivery, so
+ * every event id we successfully process is recorded here and re-deliveries are ignored — an
  * order is never fulfilled (or refunded) twice.
  */
 @Entity
-@Table(name = "processed_stripe_events")
+@Table(name = "processed_gateway_events")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ProcessedStripeEvent {
+public class ProcessedGatewayEvent {
 
-    // Stripe event id (evt_...) — natural primary key, so existsById is the dedup check.
+    // Gateway event id (Razorpay's X-Razorpay-Event-Id) — natural PK, so existsById dedups.
     @Id
     @Column(name = "event_id", length = 255)
     private String eventId;

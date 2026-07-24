@@ -1,6 +1,5 @@
 package com.shopsphere.exception;
 
-import com.stripe.exception.SignatureVerificationException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.http.HttpStatus;
@@ -10,6 +9,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -71,18 +71,18 @@ public class GlobalExceptionHandler {
                 request);
     }
 
-    // Stripe webhook signature could not be verified — reject as a bad request (§9).
-    @ExceptionHandler(SignatureVerificationException.class)
-    public ResponseEntity<ErrorResponse> handleStripeSignature(SignatureVerificationException ex,
-                                                               HttpServletRequest request) {
-        return build(HttpStatus.BAD_REQUEST, "Invalid Stripe webhook signature", request);
-    }
-
-    // Payment processing failure (Stripe misconfig, declined charge, refund error) (§9).
+    // Payment processing failure (gateway misconfig, bad signature, refund error) (§9).
     @ExceptionHandler(PaymentException.class)
     public ResponseEntity<ErrorResponse> handlePayment(PaymentException ex,
                                                        HttpServletRequest request) {
         return build(HttpStatus.PAYMENT_REQUIRED, ex.getMessage(), request);
+    }
+
+    // Uploaded file exceeds the configured multipart limit (§15) — clean 400 instead of a 500.
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSize(MaxUploadSizeExceededException ex,
+                                                             HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, "File is too large. Maximum upload size is 2MB.", request);
     }
 
     // Wrong HTTP method (e.g. opening a POST-only endpoint in the browser address bar)

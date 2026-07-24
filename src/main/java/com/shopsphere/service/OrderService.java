@@ -11,7 +11,6 @@ import com.shopsphere.realtime.OrderStatusChangedEvent;
 import com.shopsphere.realtime.StockChangedEvent;
 import com.shopsphere.repository.*;
 import com.shopsphere.security.SecurityUtils;
-import com.stripe.model.PaymentIntent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.ConcurrencyFailureException;
@@ -69,9 +68,8 @@ public class OrderService {
      *  2. Validate stock for each item
      *  3. Create the Order + OrderItems (price snapshot)
      *  4. Deduct stock from products
-     *  5. Create the Payment (PENDING). Card orders get a Stripe PaymentIntent and stay
-     *     PENDING until the payment_intent.succeeded webhook confirms them; COD stays PENDING
-     *     until delivery.
+     *  5. Create the Payment (PENDING). Online orders get a Razorpay order and stay PENDING
+     *     until the checkout callback/webhook confirms them; COD stays PENDING until delivery.
      *  6. Clear the cart
      * If anything throws, the whole thing rolls back.
      *
@@ -137,8 +135,8 @@ public class OrderService {
 
         boolean isCod = method == PaymentMethod.COD;
 
-        // Payment starts PENDING for everything. COD is settled on delivery; card orders are
-        // confirmed asynchronously by the Stripe webhook (§9).
+        // Payment starts PENDING for everything. COD is settled on delivery; online orders are
+        // confirmed by the Razorpay checkout callback / webhook (§9).
         Payment payment = Payment.builder()
                 .order(order)
                 .amount(total)
@@ -153,20 +151,19 @@ public class OrderService {
 
         Order saved = orderRepository.save(order); // cascades items + payment, assigns ids
 
-        String clientSecret = null;
+        String razorpayOrderId = null;
         if (!isCod) {
-            if (paymentService.isStripeEnabled()) {
-                // Order now has an id, so the intent can carry metadata.orderId for the webhook.
-                // A Stripe failure throws PaymentException -> rolls back this transaction,
-                // restoring the stock we just deducted.
-                PaymentIntent intent = paymentService.createIntent(saved);
-                payment.setPaymentIntentId(intent.getId());
-                payment.setTransactionRef(intent.getId());
-                clientSecret = intent.getClientSecret();
+            if (paymentService.isRazorpayEnabled()) {
+                // Order now has an id, so the gateway order can carry notes.orderId for the
+                // callback/webhook. A Razorpay failure throws PaymentException -> rolls back
+                // this transaction, restoring the stock we just deducted.
+                razorpayOrderId = paymentService.createOrder(saved);
+                payment.setRazorpayOrderId(razorpayOrderId);
+                payment.setTransactionRef(razorpayOrderId);
             } else {
-                // Stripe not configured (local/dev): mock an immediate successful payment so
-                // checkout still completes end-to-end without live payments. In prod Stripe is
-                // always configured and this branch is never taken.
+                // Razorpay not configured (local/dev): mock an immediate successful payment so
+                // checkout still completes end-to-end without live payments. In prod Razorpay
+                // is always configured and this branch is never taken.
                 payment.setStatus(PaymentStatus.SUCCESS);
                 payment.setPaidAt(LocalDateTime.now());
                 payment.setTransactionRef(
@@ -178,11 +175,19 @@ public class OrderService {
         // Empty the cart
         cartItemRepository.deleteByUserId(user.getId());
 
-        return CheckoutResponse.builder()
-                .order(OrderMapper.toResponse(saved))
-                .clientSecret(clientSecret)
-                .publishableKey(isCod ? null : paymentService.getPublishableKey())
-                .build();
+        CheckoutResponse.CheckoutResponseBuilder response = CheckoutResponse.builder()
+                .order(OrderMapper.toResponse(saved));
+        if (razorpayOrderId != null) {
+            // Everything the Razorpay Checkout widget needs on the frontend.
+            response.razorpayOrderId(razorpayOrderId)
+                    .razorpayKeyId(paymentService.getKeyId())
+                    .amountInPaise(paymentService.toMinorUnits(saved.getTotalAmount()))
+                    .currency(paymentService.getCurrency())
+                    .prefillName(user.getName())
+                    .prefillEmail(user.getEmail())
+                    .prefillContact(address.getPhone());
+        }
+        return response.build();
     }
 
     @Transactional(readOnly = true)

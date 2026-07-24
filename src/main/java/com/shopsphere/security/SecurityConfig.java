@@ -54,12 +54,14 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/search/**").permitAll()
-                // Stripe webhook: called server-to-server with no JWT; authenticated by its
-                // Stripe-Signature header inside PaymentService, not the HTTP chain (§9).
+                // Razorpay webhook: called server-to-server with no JWT; authenticated by its
+                // X-Razorpay-Signature header inside PaymentService, not the HTTP chain (§9).
                 .requestMatchers(HttpMethod.POST, "/api/payments/webhook").permitAll()
                 // SockJS handshake + transport fallbacks; STOMP frames are authorized
                 // by StompAuthChannelInterceptor, not the HTTP chain
                 .requestMatchers("/ws/**").permitAll()
+                // Avatar upload requires a logged-in user (explicit; also enforced in-code)
+                .requestMatchers(HttpMethod.POST, "/api/upload").authenticated()
                 // Admin-only endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")

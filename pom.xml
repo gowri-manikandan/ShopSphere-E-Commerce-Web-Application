@@ -106,12 +106,8 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Stripe (payments, §9). Single transitive dep: gson (already on the classpath). -->
-        <dependency>
-            <groupId>com.stripe</groupId>
-            <artifactId>stripe-java</artifactId>
-            <version>29.0.0</version>
-        </dependency>
+        <!-- Payments: Razorpay is integrated via its REST API using Java's built-in
+             HttpClient + javax.crypto HMAC (no SDK) — so no extra dependency is needed. -->
 
         <!-- Lombok (reduces getter/setter boilerplate) -->
         <dependency>

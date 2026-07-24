@@ -9,6 +9,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     Optional<Payment> findByOrderId(Long orderId);
 
-    // Correlate an incoming Stripe webhook (carries the PaymentIntent id) back to a payment.
-    Optional<Payment> findByPaymentIntentId(String paymentIntentId);
+    // Correlate a Razorpay callback/webhook (carries the Razorpay order id) back to a payment.
+    Optional<Payment> findByRazorpayOrderId(String razorpayOrderId);
 }

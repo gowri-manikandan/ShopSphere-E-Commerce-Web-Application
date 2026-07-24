@@ -8,12 +8,11 @@ import lombok.NoArgsConstructor;
 /**
  * Result of POST /api/orders/checkout (§9).
  *
- * <p>For card orders, {@code clientSecret} + {@code publishableKey} let Stripe.js confirm
- * the PaymentIntent on the frontend; the order stays PLACED / payment PENDING until the
- * {@code payment_intent.succeeded} webhook confirms it. For COD both are null.
- *
- * <p>The client secret is deliberately kept off {@link OrderResponse} so GET /api/orders
- * never leaks it — it is only returned here, once, at checkout time.
+ * <p>For online orders, the {@code razorpay*} + prefill fields are everything the Razorpay
+ * Checkout widget needs on the frontend; the order stays PLACED / payment PENDING until the
+ * checkout callback is verified (or the webhook confirms it). For COD — and for the local
+ * mock fallback when Razorpay isn't configured — {@code razorpayOrderId} is null and the
+ * frontend skips the widget.
  */
 @Data
 @Builder
@@ -21,6 +20,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CheckoutResponse {
     private OrderResponse order;
-    private String clientSecret;
-    private String publishableKey;
+
+    // Razorpay Checkout widget inputs (null for COD / mock fallback)
+    private String razorpayOrderId;
+    private String razorpayKeyId;
+    private Long amountInPaise;
+    private String currency;
+
+    // Prefill for the widget (improves UX; all optional)
+    private String prefillName;
+    private String prefillEmail;
+    private String prefillContact;
 }

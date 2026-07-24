@@ -31,7 +31,7 @@ public class AdminOrderController {
         return ResponseEntity.ok(orderService.updateStatus(id, status));
     }
 
-    // Admin: refund a paid order via Stripe, then cancel it and restore stock (§9)
+    // Admin: refund a paid order via Razorpay, then cancel it and restore stock (§9)
     @PostMapping("/{id}/refund")
     public ResponseEntity<ApiMessage> refund(@PathVariable Long id) {
         paymentService.refund(id);

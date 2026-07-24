@@ -50,8 +50,10 @@ class OrderControllerTest {
                 CheckoutResponse.builder()
                         .order(OrderResponse.builder().orderId(100L).status("PLACED")
                                 .paymentStatus("PENDING").build())
-                        .clientSecret("pi_test_123_secret_abc")
-                        .publishableKey("pk_test_abc")
+                        .razorpayOrderId("order_test_123")
+                        .razorpayKeyId("rzp_test_key")
+                        .amountInPaise(20000L)
+                        .currency("INR")
                         .build());
 
         mvc.perform(post("/api/orders/checkout")
@@ -59,7 +61,7 @@ class OrderControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.order.orderId").value(100))
                 .andExpect(jsonPath("$.order.status").value("PLACED"))
-                .andExpect(jsonPath("$.clientSecret").value("pi_test_123_secret_abc"));
+                .andExpect(jsonPath("$.razorpayOrderId").value("order_test_123"));
     }
 
     @Test

@@ -1,25 +1,23 @@
 package com.shopsphere.service;
 
-import com.shopsphere.config.StripeConfig;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shopsphere.config.RazorpayConfig;
+import com.shopsphere.dto.OrderResponse;
+import com.shopsphere.dto.PaymentVerificationRequest;
 import com.shopsphere.entity.*;
+import com.shopsphere.exception.BadRequestException;
 import com.shopsphere.exception.PaymentException;
 import com.shopsphere.exception.ResourceNotFoundException;
+import com.shopsphere.mapper.OrderMapper;
 import com.shopsphere.realtime.OrderStatusChangedEvent;
 import com.shopsphere.realtime.StockChangedEvent;
 import com.shopsphere.repository.OrderRepository;
 import com.shopsphere.repository.PaymentRepository;
-import com.shopsphere.repository.ProcessedStripeEventRepository;
+import com.shopsphere.repository.ProcessedGatewayEventRepository;
 import com.shopsphere.repository.ProductRepository;
-import com.stripe.exception.SignatureVerificationException;
-import com.stripe.exception.StripeException;
-import com.stripe.model.Event;
-import com.stripe.model.PaymentIntent;
-import com.stripe.model.Refund;
-import com.stripe.model.StripeObject;
-import com.stripe.net.RequestOptions;
-import com.stripe.net.Webhook;
-import com.stripe.param.PaymentIntentCreateParams;
-import com.stripe.param.RefundCreateParams;
+import com.shopsphere.security.RazorpaySignature;
+import com.shopsphere.security.SecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -27,131 +25,205 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
- * Stripe payment handling (§9): creating PaymentIntents at checkout, processing signed
- * webhooks (idempotently), and issuing refunds.
+ * Razorpay payment handling (§9): creating gateway orders at checkout, verifying the checkout
+ * callback signature, processing signed webhooks (idempotently), and issuing refunds.
  *
- * <p>Order/payment state transitions that this service performs publish an
- * {@link OrderStatusChangedEvent}; the existing AFTER_COMMIT broadcaster then pushes the
- * update to {@code /topic/orders/{userId}} — no new realtime code is needed here.
+ * <p>State transitions publish an {@link OrderStatusChangedEvent}; the existing AFTER_COMMIT
+ * broadcaster then pushes the update to {@code /topic/orders/{userId}} — no new realtime code.
+ *
+ * <p>Only {@link RazorpayClient} touches the network; everything here (signature checks, DB,
+ * events) is local and unit-testable.
  */
 @Service
 public class PaymentService {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
-    private final StripeConfig stripeConfig;
+    private final RazorpayConfig razorpayConfig;
+    private final RazorpayClient razorpayClient;
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
-    private final ProcessedStripeEventRepository processedEventRepository;
+    private final ProcessedGatewayEventRepository processedEventRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final SecurityUtils securityUtils;
+    private final ObjectMapper objectMapper;
 
-    public PaymentService(StripeConfig stripeConfig,
+    public PaymentService(RazorpayConfig razorpayConfig,
+                          RazorpayClient razorpayClient,
                           PaymentRepository paymentRepository,
                           OrderRepository orderRepository,
                           ProductRepository productRepository,
-                          ProcessedStripeEventRepository processedEventRepository,
-                          ApplicationEventPublisher eventPublisher) {
-        this.stripeConfig = stripeConfig;
+                          ProcessedGatewayEventRepository processedEventRepository,
+                          ApplicationEventPublisher eventPublisher,
+                          SecurityUtils securityUtils,
+                          ObjectMapper objectMapper) {
+        this.razorpayConfig = razorpayConfig;
+        this.razorpayClient = razorpayClient;
         this.paymentRepository = paymentRepository;
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.processedEventRepository = processedEventRepository;
         this.eventPublisher = eventPublisher;
+        this.securityUtils = securityUtils;
+        this.objectMapper = objectMapper;
     }
 
-    // ----- Checkout: create a PaymentIntent for a saved (PLACED) order -----
+    // ----- Checkout: create a Razorpay order for a saved (PLACED) order -----
+
+    /** True when Razorpay keys are present, i.e. real online payments can be processed. */
+    public boolean isRazorpayEnabled() {
+        return razorpayConfig.isConfigured();
+    }
+
+    public String getKeyId() {
+        return razorpayConfig.getKeyId();
+    }
+
+    public String getCurrency() {
+        return razorpayConfig.getCurrency();
+    }
+
+    public long toMinorUnits(BigDecimal amount) {
+        // rupees(scale 2) -> paise. e.g. 200.00 -> 20000.
+        return amount.movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact();
+    }
 
     /**
-     * Create a Stripe PaymentIntent for the given (already-persisted) order. Called from
-     * within the checkout transaction after the order has an id, so we can tag the intent
-     * with {@code metadata.orderId} and correlate the webhook back to it.
-     *
-     * <p>If the surrounding transaction later rolls back (e.g. a stock conflict on retry),
-     * the created intent is simply never confirmed and expires on Stripe's side — an
-     * acceptable trade-off at this scale versus creating the intent outside the transaction.
+     * Create a Razorpay order for the given (already-persisted) app order and return its id
+     * (order_...). Tagged with {@code notes.orderId} so the webhook/callback can be tied back.
      */
-    public PaymentIntent createIntent(Order order) {
-        if (!stripeConfig.isConfigured()) {
-            throw new PaymentException("Card payments are not available right now. "
+    public String createOrder(Order order) {
+        if (!isRazorpayEnabled()) {
+            throw new PaymentException("Online payments are not available right now. "
                     + "Please choose Cash on Delivery or try again later.");
         }
-        long amountMinor = toMinorUnits(order.getTotalAmount());
-        PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
-                .setAmount(amountMinor)
-                .setCurrency(stripeConfig.getCurrency())
-                .putMetadata("orderId", String.valueOf(order.getId()))
-                .setAutomaticPaymentMethods(
-                        PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
-                                .setEnabled(true)
-                                .build())
-                .build();
-        try {
-            return PaymentIntent.create(params);
-        } catch (StripeException e) {
-            throw new PaymentException("Could not initiate payment: " + e.getMessage(), e);
-        }
+        return razorpayClient.createOrder(
+                toMinorUnits(order.getTotalAmount()),
+                razorpayConfig.getCurrency(),
+                "rcpt_" + order.getId(),
+                Map.of("orderId", String.valueOf(order.getId())));
     }
 
-    public String getPublishableKey() {
-        return stripeConfig.getPublishableKey();
-    }
-
-    /** True when a Stripe secret key is present, i.e. real card payments can be processed. */
-    public boolean isStripeEnabled() {
-        return stripeConfig.isConfigured();
-    }
-
-    // ----- Webhook -----
+    // ----- Verify the checkout callback (primary confirmation path) -----
 
     /**
-     * Verify and process a Stripe webhook (§9). Verifies the signature, ignores events we
-     * have already processed (idempotency), applies the state change, then records the event
-     * id. Runs in one transaction so the dedup insert + state change commit atomically and
-     * the status broadcast fires AFTER_COMMIT.
+     * Verify the Razorpay Checkout callback signature and confirm the order (§9). Called by the
+     * customer's browser right after a successful payment in the widget.
      */
-    @Transactional(rollbackFor = Exception.class)
-    public void handleWebhook(String payload, String signatureHeader) throws SignatureVerificationException {
-        if (!stripeConfig.isWebhookConfigured()) {
-            throw new PaymentException("Stripe webhook secret is not configured.");
+    @Transactional
+    public OrderResponse verifyAndConfirm(PaymentVerificationRequest req) {
+        User user = securityUtils.getCurrentUser();
+        Order order = orderRepository.findById(req.getOrderId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Order not found with id: " + req.getOrderId()));
+        if (!order.getUser().getId().equals(user.getId())) {
+            throw new BadRequestException("You can only pay for your own orders");
         }
 
-        Event event = Webhook.constructEvent(payload, signatureHeader, stripeConfig.getWebhookSecret());
+        Payment payment = order.getPayment();
+        if (payment == null || payment.getRazorpayOrderId() == null) {
+            throw new PaymentException("This order has no online payment to verify.");
+        }
+        if (!payment.getRazorpayOrderId().equals(req.getRazorpayOrderId())) {
+            throw new PaymentException("Payment does not match this order.");
+        }
 
-        if (processedEventRepository.existsById(event.getId())) {
-            log.info("Stripe event {} already processed — ignoring duplicate.", event.getId());
+        if (!RazorpaySignature.verifyPaymentSignature(req.getRazorpayOrderId(),
+                req.getRazorpayPaymentId(), req.getRazorpaySignature(), razorpayConfig.getKeySecret())) {
+            throw new PaymentException("Payment signature verification failed.");
+        }
+
+        confirmPayment(payment, req.getRazorpayPaymentId());
+        return OrderMapper.toResponse(order);
+    }
+
+    // ----- Webhook (reliability backup) -----
+
+    /**
+     * Verify and process a Razorpay webhook (§9). Verifies the body signature, ignores events
+     * already processed (idempotency), applies the state change, then records the event id.
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void handleWebhook(String rawBody, String signature, String eventId) {
+        if (!razorpayConfig.isWebhookConfigured()) {
+            throw new PaymentException("Razorpay webhook secret is not configured.");
+        }
+        if (!RazorpaySignature.verifyWebhookSignature(rawBody, signature, razorpayConfig.getWebhookSecret())) {
+            throw new PaymentException("Invalid Razorpay webhook signature.");
+        }
+
+        JsonNode root = readJson(rawBody);
+        String eventType = root.path("event").asText();
+        // Dedup key: prefer the event-id header; fall back to event+payment id if absent.
+        JsonNode paymentEntity = root.path("payload").path("payment").path("entity");
+        String razorpayPaymentId = paymentEntity.path("id").asText(null);
+        String razorpayOrderId = paymentEntity.path("order_id").asText(null);
+        String dedupKey = (eventId != null && !eventId.isBlank())
+                ? eventId
+                : eventType + ":" + razorpayPaymentId;
+
+        if (processedEventRepository.existsById(dedupKey)) {
+            log.info("Razorpay event {} already processed — ignoring duplicate.", dedupKey);
             return;
         }
 
-        switch (event.getType()) {
-            case "payment_intent.succeeded" -> markPaymentSucceeded(extractPaymentIntentId(event));
-            case "payment_intent.payment_failed" -> markPaymentFailed(extractPaymentIntentId(event));
-            default -> log.info("Ignoring unhandled Stripe event type: {}", event.getType());
+        switch (eventType) {
+            case "payment.captured", "order.paid" -> confirmByRazorpayOrderId(razorpayOrderId, razorpayPaymentId);
+            case "payment.failed" -> failByRazorpayOrderId(razorpayOrderId);
+            default -> log.info("Ignoring unhandled Razorpay event type: {}", eventType);
         }
 
-        processedEventRepository.save(ProcessedStripeEvent.builder()
-                .eventId(event.getId())
-                .eventType(event.getType())
+        processedEventRepository.save(ProcessedGatewayEvent.builder()
+                .eventId(dedupKey)
+                .eventType(eventType)
                 .processedAt(LocalDateTime.now())
                 .build());
     }
 
-    private void markPaymentSucceeded(String paymentIntentId) {
-        Payment payment = paymentRepository.findByPaymentIntentId(paymentIntentId).orElse(null);
+    private void confirmByRazorpayOrderId(String razorpayOrderId, String razorpayPaymentId) {
+        if (razorpayOrderId == null) {
+            log.warn("Webhook payment has no order_id — skipping.");
+            return;
+        }
+        Payment payment = paymentRepository.findByRazorpayOrderId(razorpayOrderId).orElse(null);
         if (payment == null) {
-            // Intent we don't recognise (e.g. created by another system); ack so Stripe stops retrying.
-            log.warn("No payment found for PaymentIntent {} — acknowledging succeeded event.", paymentIntentId);
+            log.warn("No payment found for Razorpay order {} — acknowledging webhook.", razorpayOrderId);
             return;
         }
         if (payment.getStatus() == PaymentStatus.SUCCESS) {
-            return; // already confirmed
+            return; // already confirmed (e.g. via the callback)
         }
+        confirmPayment(payment, razorpayPaymentId);
+    }
 
+    private void failByRazorpayOrderId(String razorpayOrderId) {
+        if (razorpayOrderId == null) {
+            return;
+        }
+        Payment payment = paymentRepository.findByRazorpayOrderId(razorpayOrderId).orElse(null);
+        if (payment == null || payment.getStatus() == PaymentStatus.SUCCESS) {
+            return;
+        }
+        // Leave the order PLACED so the customer can retry payment or cancel it.
+        payment.setStatus(PaymentStatus.FAILED);
+        paymentRepository.save(payment);
+        log.info("Razorpay order {} payment marked FAILED; order left PLACED.", razorpayOrderId);
+    }
+
+    /** Mark a payment successful and confirm its order, broadcasting the status change. */
+    private void confirmPayment(Payment payment, String razorpayPaymentId) {
         payment.setStatus(PaymentStatus.SUCCESS);
+        payment.setRazorpayPaymentId(razorpayPaymentId);
         payment.setPaidAt(LocalDateTime.now());
+        if (razorpayPaymentId != null) {
+            payment.setTransactionRef(razorpayPaymentId);
+        }
 
         Order order = payment.getOrder();
         order.setStatus(OrderStatus.CONFIRMED);
@@ -160,37 +232,14 @@ public class PaymentService {
         eventPublisher.publishEvent(new OrderStatusChangedEvent(
                 order.getId(), order.getUser().getId(),
                 OrderStatus.CONFIRMED.name(), LocalDateTime.now()));
-        log.info("Order {} confirmed after successful payment {}.", order.getId(), paymentIntentId);
-    }
-
-    private void markPaymentFailed(String paymentIntentId) {
-        Payment payment = paymentRepository.findByPaymentIntentId(paymentIntentId).orElse(null);
-        if (payment == null) {
-            log.warn("No payment found for PaymentIntent {} — acknowledging failed event.", paymentIntentId);
-            return;
-        }
-        // Leave the order PLACED so the customer can retry payment or cancel it (§9 decision).
-        payment.setStatus(PaymentStatus.FAILED);
-        paymentRepository.save(payment);
-        log.info("Payment {} marked FAILED; order left PLACED for retry/cancel.", paymentIntentId);
-    }
-
-    private String extractPaymentIntentId(Event event) {
-        StripeObject object = event.getDataObjectDeserializer().getObject().orElseThrow(() ->
-                new PaymentException("Could not deserialize Stripe event " + event.getId()
-                        + " (API version mismatch?)"));
-        if (object instanceof PaymentIntent intent) {
-            return intent.getId();
-        }
-        throw new PaymentException("Unexpected object type for event " + event.getId());
+        log.info("Order {} confirmed after successful payment {}.", order.getId(), razorpayPaymentId);
     }
 
     // ----- Refund (admin, §9) -----
 
     /**
-     * Refund a paid order: issues a Stripe refund, marks the payment REFUNDED, cancels the
-     * order and restores stock. The Stripe call uses an idempotency key so a retried admin
-     * request (e.g. after a stock-conflict 409) never refunds twice.
+     * Refund a paid order: issues a Razorpay refund, marks the payment REFUNDED, cancels the
+     * order and restores stock.
      */
     @Transactional
     public void refund(Long orderId) {
@@ -198,8 +247,8 @@ public class PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
         Payment payment = order.getPayment();
-        if (payment == null || payment.getPaymentIntentId() == null) {
-            throw new PaymentException("Order " + orderId + " has no Stripe payment to refund.");
+        if (payment == null || payment.getRazorpayPaymentId() == null) {
+            throw new PaymentException("Order " + orderId + " has no captured online payment to refund.");
         }
         if (payment.getStatus() == PaymentStatus.REFUNDED) {
             throw new PaymentException("Order " + orderId + " has already been refunded.");
@@ -209,17 +258,7 @@ public class PaymentService {
                     + payment.getStatus() + ").");
         }
 
-        RefundCreateParams params = RefundCreateParams.builder()
-                .setPaymentIntent(payment.getPaymentIntentId())
-                .build();
-        RequestOptions options = RequestOptions.builder()
-                .setIdempotencyKey("refund-order-" + orderId)
-                .build();
-        try {
-            Refund.create(params, options);
-        } catch (StripeException e) {
-            throw new PaymentException("Refund failed: " + e.getMessage(), e);
-        }
+        razorpayClient.refund(payment.getRazorpayPaymentId());
 
         payment.setStatus(PaymentStatus.REFUNDED);
         order.setStatus(OrderStatus.CANCELLED);
@@ -243,8 +282,11 @@ public class PaymentService {
 
     // ----- helpers -----
 
-    private long toMinorUnits(BigDecimal amount) {
-        // BigDecimal(scale 2) -> integer minor units (cents). e.g. 200.00 -> 20000.
-        return amount.movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).longValueExact();
+    private JsonNode readJson(String body) {
+        try {
+            return objectMapper.readTree(body);
+        } catch (Exception e) {
+            throw new PaymentException("Malformed webhook payload.", e);
+        }
     }
 }

@@ -10,7 +10,6 @@ import com.shopsphere.realtime.OrderStatusChangedEvent;
 import com.shopsphere.realtime.StockChangedEvent;
 import com.shopsphere.repository.*;
 import com.shopsphere.security.SecurityUtils;
-import com.stripe.model.PaymentIntent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +26,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -79,26 +77,24 @@ class OrderServiceTest {
         return r;
     }
 
-    // Stub the Stripe PaymentIntent that PaymentService returns for a card checkout
-    // (with Stripe configured, i.e. the real-payment path).
-    private PaymentIntent stubStripeIntent(String id, String clientSecret) {
-        when(paymentService.isStripeEnabled()).thenReturn(true);
-        PaymentIntent intent = mock(PaymentIntent.class);
-        when(intent.getId()).thenReturn(id);
-        when(intent.getClientSecret()).thenReturn(clientSecret);
-        when(paymentService.createIntent(any())).thenReturn(intent);
-        return intent;
+    // Stub PaymentService for a card checkout with Razorpay configured (real-payment path).
+    private void stubRazorpayEnabled(String razorpayOrderId) {
+        when(paymentService.isRazorpayEnabled()).thenReturn(true);
+        when(paymentService.createOrder(any())).thenReturn(razorpayOrderId);
+        when(paymentService.getKeyId()).thenReturn("rzp_test_key");
+        when(paymentService.getCurrency()).thenReturn("INR");
+        when(paymentService.toMinorUnits(any())).thenReturn(20000L);
     }
 
     @Test
-    void doCheckout_card_deductsStock_createsPaymentIntent_pending_clearsCart() {
+    void doCheckout_card_deductsStock_createsRazorpayOrder_pending_clearsCart() {
         Product p = product(10L, "100.00", 50);
         when(securityUtils.getCurrentUser()).thenReturn(user);
         when(cartItemRepository.findByUserId(1L)).thenReturn(List.of(cartItem(p, 2)));
         when(addressRepository.findById(5L)).thenReturn(Optional.of(address));
         when(productRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        stubStripeIntent("pi_test_123", "pi_test_123_secret_abc");
+        stubRazorpayEnabled("order_test_123");
 
         CheckoutResponse response = orderService.doCheckout(request("CARD"));
 
@@ -110,46 +106,49 @@ class OrderServiceTest {
         assertThat(saved.getTotalAmount()).isEqualByComparingTo("200.00"); // 100 * 2
         assertThat(saved.getStatus()).isEqualTo(OrderStatus.PLACED);
         assertThat(saved.getItems()).hasSize(1);
-        // Card payment stays PENDING until the Stripe webhook confirms it (§9).
+        // Online payment stays PENDING until the callback/webhook confirms it (§9).
         assertThat(saved.getPayment().getStatus()).isEqualTo(PaymentStatus.PENDING);
         assertThat(saved.getPayment().getPaidAt()).isNull();
-        assertThat(saved.getPayment().getPaymentIntentId()).isEqualTo("pi_test_123");
-        assertThat(saved.getPayment().getTransactionRef()).isEqualTo("pi_test_123");
+        assertThat(saved.getPayment().getRazorpayOrderId()).isEqualTo("order_test_123");
+        assertThat(saved.getPayment().getTransactionRef()).isEqualTo("order_test_123");
 
-        verify(paymentService).createIntent(any());
+        verify(paymentService).createOrder(any());
         verify(cartItemRepository).deleteByUserId(1L);
         assertThat(response.getOrder().getStatus()).isEqualTo("PLACED");
         assertThat(response.getOrder().getPaymentStatus()).isEqualTo("PENDING");
-        assertThat(response.getClientSecret()).isEqualTo("pi_test_123_secret_abc");
+        assertThat(response.getRazorpayOrderId()).isEqualTo("order_test_123");
+        assertThat(response.getRazorpayKeyId()).isEqualTo("rzp_test_key");
+        assertThat(response.getAmountInPaise()).isEqualTo(20000L);
+        assertThat(response.getCurrency()).isEqualTo("INR");
     }
 
     @Test
-    void doCheckout_card_stripeNotConfigured_fallsBackToMockSuccess() {
+    void doCheckout_card_razorpayNotConfigured_fallsBackToMockSuccess() {
         Product p = product(10L, "100.00", 50);
         when(securityUtils.getCurrentUser()).thenReturn(user);
         when(cartItemRepository.findByUserId(1L)).thenReturn(List.of(cartItem(p, 1)));
         when(addressRepository.findById(5L)).thenReturn(Optional.of(address));
         when(productRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        when(paymentService.isStripeEnabled()).thenReturn(false);
+        when(paymentService.isRazorpayEnabled()).thenReturn(false);
 
         CheckoutResponse response = orderService.doCheckout(request("CARD"));
 
         ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
         verify(orderRepository).save(orderCaptor.capture());
         Payment payment = orderCaptor.getValue().getPayment();
-        // No Stripe -> mock immediate success so local checkout still works.
+        // No Razorpay -> mock immediate success so local checkout still works.
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
         assertThat(payment.getPaidAt()).isNotNull();
-        assertThat(payment.getPaymentIntentId()).isNull();
+        assertThat(payment.getRazorpayOrderId()).isNull();
         assertThat(payment.getTransactionRef()).startsWith("MOCK-");
 
-        verify(paymentService, never()).createIntent(any());
-        assertThat(response.getClientSecret()).isNull();
+        verify(paymentService, never()).createOrder(any());
+        assertThat(response.getRazorpayOrderId()).isNull();
     }
 
     @Test
-    void doCheckout_cod_leavesPaymentPending_noStripeIntent() {
+    void doCheckout_cod_leavesPaymentPending_noRazorpayOrder() {
         Product p = product(10L, "100.00", 50);
         when(securityUtils.getCurrentUser()).thenReturn(user);
         when(cartItemRepository.findByUserId(1L)).thenReturn(List.of(cartItem(p, 1)));
@@ -164,12 +163,12 @@ class OrderServiceTest {
         Payment payment = orderCaptor.getValue().getPayment();
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
         assertThat(payment.getPaidAt()).isNull();
-        assertThat(payment.getPaymentIntentId()).isNull();
+        assertThat(payment.getRazorpayOrderId()).isNull();
         assertThat(payment.getTransactionRef()).startsWith("COD-");
 
-        // COD never touches Stripe, and no client secret is returned.
-        verify(paymentService, never()).createIntent(any());
-        assertThat(response.getClientSecret()).isNull();
+        // COD never touches Razorpay, and no widget fields are returned.
+        verify(paymentService, never()).createOrder(any());
+        assertThat(response.getRazorpayOrderId()).isNull();
     }
 
     @Test
@@ -317,7 +316,7 @@ class OrderServiceTest {
         when(addressRepository.findById(5L)).thenReturn(Optional.of(address));
         when(productRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        stubStripeIntent("pi_test_evt", "pi_test_evt_secret");
+        stubRazorpayEnabled("order_test_evt");
 
         orderService.doCheckout(request("CARD"));
 

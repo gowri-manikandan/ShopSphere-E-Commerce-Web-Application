@@ -18,8 +18,8 @@ public class OrderController {
 
     private final OrderService orderService;
 
-    // Customer: place an order from the cart. For card orders the response carries the
-    // Stripe clientSecret + publishableKey so the frontend can confirm the payment (§9).
+    // Customer: place an order from the cart. For online orders the response carries the
+    // Razorpay order id + key so the frontend can open the Checkout widget (§9).
     @PostMapping("/checkout")
     public ResponseEntity<CheckoutResponse> checkout(@Valid @RequestBody OrderRequest request) {
         return ResponseEntity.ok(orderService.checkout(request));

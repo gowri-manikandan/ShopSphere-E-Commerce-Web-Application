@@ -240,74 +240,145 @@ async function handlePlaceOrder() {
     try {
         placeOrderBtn.disabled = true;
         showLoader();
-        
+
+        // Checkout returns { order, razorpayOrderId, razorpayKeyId, amountInPaise, currency,
+        // prefill* }. razorpay* are present only for online payments with Razorpay configured.
         const checkoutResult = await api.post('/api/orders/checkout', {
             addressId: selectedAddressId,
             paymentMethod: selectedPaymentMethod
         });
 
-        // Checkout now returns { order, clientSecret, publishableKey }; the order details
-        // are nested under `order`.
         const order = checkoutResult.order || checkoutResult;
 
-        // Cart was cleared server-side on checkout; sync the navbar badge.
+        // Cart is cleared server-side on checkout; sync the navbar badge.
         await refreshCartCount();
 
-        // Show Success confirmation Modal
-        const successHtml = `
-            <div class="success-modal-content">
-                <div class="success-icon-wrapper">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="64" height="64" style="margin:0 auto;">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <h3 class="success-title">Order Placed Successfully!</h3>
-                <p class="success-text">Thank you for your order. We have received your payment details.</p>
-                
-                <div class="order-receipt">
-                    <div class="receipt-row">
-                        <span style="font-weight:600; color:var(--text-muted);">Order ID</span>
-                        <span style="font-family:monospace; font-weight:700;">#${order.orderId}</span>
-                    </div>
-                    <div class="receipt-row">
-                        <span style="font-weight:600; color:var(--text-muted);">Total Amount</span>
-                        <span style="font-weight:700;">₹${Number(order.totalAmount).toFixed(2)}</span>
-                    </div>
-                    <div class="receipt-row">
-                        <span style="font-weight:600; color:var(--text-muted);">Payment Method</span>
-                        <span style="font-weight:700;">${order.paymentMethod}</span>
-                    </div>
-                    <div class="receipt-row">
-                        <span style="font-weight:600; color:var(--text-muted);">Transaction Ref</span>
-                        <span style="font-family:monospace; font-size:12px;">${order.transactionRef || 'N/A'}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        showModal({
-            title: 'Order Status Confirmation',
-            contentHtml: successHtml,
-            confirmText: 'View Order History',
-            showActions: true,
-            cancelText: '',
-            onConfirm: () => {
-                window.location.href = 'orders.html';
-                return true;
-            },
-            size: 'medium'
-        });
-
-        // Hide cancel button in success modal if it is rendered
-        const cancelBtn = document.getElementById('modal-cancel-btn');
-        if (cancelBtn) {
-            cancelBtn.style.display = 'none';
+        if (checkoutResult.razorpayOrderId) {
+            // Real online payment: open the Razorpay Checkout widget (Card / UPI / Net Banking).
+            openRazorpayCheckout(checkoutResult, order);
+        } else {
+            // COD, or local mock fallback when Razorpay isn't configured — order is done.
+            showOrderSuccess(order);
         }
-
     } catch (err) {
         showToast(err.message || 'Checkout transaction failed. Please retry.', 'error');
         placeOrderBtn.disabled = false;
     } finally {
         hideLoader();
+    }
+}
+
+// Open the Razorpay Checkout widget and confirm the payment on our backend.
+function openRazorpayCheckout(checkoutResult, order) {
+    if (typeof window.Razorpay === 'undefined') {
+        showToast('Payment library failed to load. Please refresh and try again.', 'error');
+        placeOrderBtn.disabled = false;
+        return;
+    }
+
+    const options = {
+        key: checkoutResult.razorpayKeyId,
+        order_id: checkoutResult.razorpayOrderId,
+        amount: checkoutResult.amountInPaise,
+        currency: checkoutResult.currency || 'INR',
+        name: 'ShopSphere',
+        description: `Order #${order.orderId}`,
+        prefill: {
+            name: checkoutResult.prefillName || '',
+            email: checkoutResult.prefillEmail || '',
+            contact: checkoutResult.prefillContact || ''
+        },
+        theme: { color: '#4f46e5' },
+        handler: async (response) => {
+            // Payment succeeded in the widget; verify it server-side before confirming.
+            try {
+                showLoader();
+                const confirmedOrder = await api.post('/api/payments/verify', {
+                    orderId: order.orderId,
+                    razorpayOrderId: response.razorpay_order_id,
+                    razorpayPaymentId: response.razorpay_payment_id,
+                    razorpaySignature: response.razorpay_signature
+                });
+                showOrderSuccess(confirmedOrder || order);
+            } catch (err) {
+                showToast(err.message || 'We could not verify your payment. If money was '
+                    + 'deducted it will be auto-refunded. You can retry from your Orders.', 'error');
+                placeOrderBtn.disabled = false;
+            } finally {
+                hideLoader();
+            }
+        },
+        modal: {
+            ondismiss: () => {
+                showToast('Payment cancelled. Your order is pending — you can pay or cancel '
+                    + 'it from your Orders.', 'info');
+                placeOrderBtn.disabled = false;
+            }
+        }
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.on('payment.failed', (resp) => {
+        const reason = resp?.error?.description || 'Payment failed.';
+        showToast(reason + ' Your order is pending — you can retry from your Orders.', 'error');
+        placeOrderBtn.disabled = false;
+    });
+    rzp.open();
+}
+
+// Success confirmation modal (shared by COD/mock and the verified-online path).
+function showOrderSuccess(order) {
+    const successHtml = `
+        <div class="success-modal-content">
+            <div class="success-icon-wrapper">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="64" height="64" style="margin:0 auto;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h3 class="success-title">Order Placed Successfully!</h3>
+            <p class="success-text">Thank you for your order. We have received your payment details.</p>
+
+            <div class="order-receipt">
+                <div class="receipt-row">
+                    <span style="font-weight:600; color:var(--text-muted);">Order ID</span>
+                    <span style="font-family:monospace; font-weight:700;">#${order.orderId}</span>
+                </div>
+                <div class="receipt-row">
+                    <span style="font-weight:600; color:var(--text-muted);">Total Amount</span>
+                    <span style="font-weight:700;">₹${Number(order.totalAmount).toFixed(2)}</span>
+                </div>
+                <div class="receipt-row">
+                    <span style="font-weight:600; color:var(--text-muted);">Payment Method</span>
+                    <span style="font-weight:700;">${order.paymentMethod}</span>
+                </div>
+                <div class="receipt-row">
+                    <span style="font-weight:600; color:var(--text-muted);">Payment Status</span>
+                    <span style="font-weight:700;">${order.paymentStatus || 'N/A'}</span>
+                </div>
+                <div class="receipt-row">
+                    <span style="font-weight:600; color:var(--text-muted);">Transaction Ref</span>
+                    <span style="font-family:monospace; font-size:12px;">${order.transactionRef || 'N/A'}</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    showModal({
+        title: 'Order Status Confirmation',
+        contentHtml: successHtml,
+        confirmText: 'View Order History',
+        showActions: true,
+        cancelText: '',
+        onConfirm: () => {
+            window.location.href = 'orders.html';
+            return true;
+        },
+        size: 'medium'
+    });
+
+    // Hide cancel button in success modal if it is rendered
+    const cancelBtn = document.getElementById('modal-cancel-btn');
+    if (cancelBtn) {
+        cancelBtn.style.display = 'none';
     }
 }
