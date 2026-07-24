@@ -484,55 +484,58 @@
 
         // ---------- Switch to OTP step ----------
         function goToOtpStep(email) {
-            const regSection = document.getElementById('register-flow-section');
             const otpSection = document.getElementById('otp-verify-section');
-            document.getElementById('verify-email-display').textContent = email;
+            const regSection = document.getElementById('register-section');
 
             regSection.style.opacity = '0';
-            regSection.style.transform = 'translateY(-10px)';
             setTimeout(() => {
                 regSection.style.display = 'none';
                 otpSection.style.display = 'block';
                 setTimeout(() => {
                     otpSection.style.opacity = '1';
                     otpBoxes[0].focus();
-                }, 30);
-                startTimer();
-            }, 350);
+                    startOtpTimer();
+                }, 50);
+            }, 300);
+            document.getElementById('otp-email-display').textContent = email;
         }
 
-        // ---------- Countdown ----------
-        function startTimer() {
-            clearInterval(countdownInterval);
-            let seconds = 60;
+        // ---------- OTP Timer ----------
+        let otpTimerInterval;
+        function startOtpTimer() {
+            clearInterval(otpTimerInterval);
+            let timeLeft = 60;
+            const timerVal = document.getElementById('otp-timer-val');
             resendOtpBtn.style.display = 'none';
-            countdownTimer.style.display = 'inline';
-            countdownTimer.textContent = `Resend code in ${seconds}s`;
-            countdownInterval = setInterval(() => {
-                seconds--;
-                if (seconds <= 0) {
-                    clearInterval(countdownInterval);
-                    countdownTimer.style.display = 'none';
+            document.querySelector('.otp-timer-container').style.display = 'block';
+            timerVal.textContent = timeLeft;
+
+            otpTimerInterval = setInterval(() => {
+                timeLeft--;
+                timerVal.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(otpTimerInterval);
+                    document.querySelector('.otp-timer-container').style.display = 'none';
                     resendOtpBtn.style.display = 'inline';
-                } else {
-                    countdownTimer.textContent = `Resend code in ${seconds}s`;
                 }
             }, 1000);
         }
 
         resendOtpBtn.addEventListener('click', async () => {
-            const email = emailInput.value.trim();
             try {
+                const email = document.getElementById('otp-email-display').textContent;
                 resendOtpBtn.style.display = 'none';
-                countdownTimer.style.display = 'inline';
-                countdownTimer.textContent = 'Sending...';
+                resendSpinner.style.display = 'inline-block';
+                
                 await auth.resendOtp(email);
                 showToast('OTP resent successfully.', 'success');
-                startTimer();
+                startOtpTimer();
             } catch (err) {
                 showToast(err.message || 'Failed to resend OTP.', 'error');
-                countdownTimer.style.display = 'none';
+                resendSpinner.style.display = 'none';
                 resendOtpBtn.style.display = 'inline';
+            } finally {
+                resendSpinner.style.display = 'none';
             }
         });
 

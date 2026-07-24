@@ -84,4 +84,25 @@ class AuthServiceGoogleTest {
         assertThat(res.getUserId()).isEqualTo(7L);
         assertThat(res.getToken()).isEqualTo("jwt");
     }
+
+    @Test
+    void googleSignIn_gowriEmail_createsGoogleUser() {
+        when(googleTokenVerifier.verify("user-google-token"))
+                .thenReturn(new GoogleTokenVerifier.GoogleUser("gowrimanikandanon2003@gmail.com", "Gowri Manikandan", "google-sub-gowri"));
+        when(userRepository.findByEmail("gowrimanikandanon2003@gmail.com")).thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+            User u = inv.getArgument(0);
+            u.setId(101L);
+            return u;
+        });
+        when(jwtService.generateToken(any(), any())).thenReturn("mock-jwt-token");
+        when(refreshTokenService.createForUser(any())).thenReturn("mock-refresh-token");
+
+        AuthResponse res = authService.googleSignIn("user-google-token");
+
+        assertThat(res.getEmail()).isEqualTo("gowrimanikandanon2003@gmail.com");
+        assertThat(res.getName()).isEqualTo("Gowri Manikandan");
+        assertThat(res.getRole()).isEqualTo("CUSTOMER");
+        assertThat(res.getToken()).isEqualTo("mock-jwt-token");
+    }
 }

@@ -48,7 +48,7 @@ public class AuthService {
 
         userRepository.save(user);
 
-        // Send verification email (logs to console on failure)
+        // Send verification email
         emailService.sendOtpEmail(user.getEmail(), otp);
 
         return AuthResponse.builder()

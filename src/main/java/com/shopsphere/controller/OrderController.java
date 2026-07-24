@@ -1,5 +1,6 @@
 package com.shopsphere.controller;
 
+import com.shopsphere.dto.CheckoutResponse;
 import com.shopsphere.dto.OrderRequest;
 import com.shopsphere.dto.OrderResponse;
 import com.shopsphere.service.OrderService;
@@ -17,9 +18,10 @@ public class OrderController {
 
     private final OrderService orderService;
 
-    // Customer: place an order from the cart
+    // Customer: place an order from the cart. For card orders the response carries the
+    // Stripe clientSecret + publishableKey so the frontend can confirm the payment (§9).
     @PostMapping("/checkout")
-    public ResponseEntity<OrderResponse> checkout(@Valid @RequestBody OrderRequest request) {
+    public ResponseEntity<CheckoutResponse> checkout(@Valid @RequestBody OrderRequest request) {
         return ResponseEntity.ok(orderService.checkout(request));
     }
 

@@ -53,7 +53,7 @@ public class GoogleTokenVerifier {
 
     // Spring wiring: read the client id, use the real JWKS resolver.
     @Autowired
-    public GoogleTokenVerifier(@Value("${app.google.client-id:}") String clientId) {
+    public GoogleTokenVerifier(@Value("${spring.security.oauth2.client.registration.google.client-id:}") String clientId) {
         this(clientId, new GoogleJwksKeyResolver());
     }
 

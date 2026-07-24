@@ -2,6 +2,7 @@ package com.shopsphere.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -12,9 +13,16 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
+
     @Autowired
     public EmailService(@Autowired(required = false) JavaMailSender mailSender) {
         this.mailSender = mailSender;
+    }
+
+    public boolean isMailSenderConfigured() {
+        return this.mailSender != null && mailUsername != null && !mailUsername.isBlank();
     }
 
     public void sendOtpEmail(String toEmail, String otp) {
@@ -38,26 +46,28 @@ public class EmailService {
         send(toEmail, subject, messageText, otp, "PASSWORD RESET OTP");
     }
 
-    /** Sends via SMTP when configured; always prints the OTP to the console for local testing. */
+    /** Sends via SMTP; throws exception if SMTP send fails or is unconfigured. */
     private void send(String toEmail, String subject, String messageText, String otp, String consoleLabel) {
         System.out.println("=================================================");
         System.out.println(consoleLabel + " FOR " + toEmail + ": " + otp);
         System.out.println("=================================================");
 
+        if (mailSender == null || mailUsername == null || mailUsername.isBlank()) {
+            log.error("JavaMailSender is not configured. Cannot send email to {}", toEmail);
+            throw new IllegalStateException("Email service is not configured. Please set MAIL_USERNAME and MAIL_PASSWORD in your environment.");
+        }
+
         try {
-            if (mailSender != null) {
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setTo(toEmail);
-                message.setSubject(subject);
-                message.setText(messageText);
-                message.setFrom("no-reply@shopsphere.com");
-                mailSender.send(message);
-                log.info("Email '{}' successfully sent to {}", subject, toEmail);
-            } else {
-                log.info("JavaMailSender is not configured. OTP printed to console log only.");
-            }
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(toEmail);
+            message.setSubject(subject);
+            message.setText(messageText);
+            message.setFrom(mailUsername);
+            mailSender.send(message);
+            log.info("Email '{}' successfully sent to {}", subject, toEmail);
         } catch (Exception e) {
-            log.warn("Could not send SMTP email to {}. Fallback to console logging. Reason: {}", toEmail, e.getMessage());
+            log.error("Could not send SMTP email to {}. Reason: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Failed to send email: " + e.getMessage(), e);
         }
     }
 }

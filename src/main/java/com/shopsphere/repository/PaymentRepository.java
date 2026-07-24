@@ -8,4 +8,7 @@ import java.util.Optional;
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     Optional<Payment> findByOrderId(Long orderId);
+
+    // Correlate an incoming Stripe webhook (carries the PaymentIntent id) back to a payment.
+    Optional<Payment> findByPaymentIntentId(String paymentIntentId);
 }

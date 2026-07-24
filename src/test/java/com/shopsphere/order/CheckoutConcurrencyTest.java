@@ -1,7 +1,7 @@
 package com.shopsphere.order;
 
+import com.shopsphere.dto.CheckoutResponse;
 import com.shopsphere.dto.OrderRequest;
-import com.shopsphere.dto.OrderResponse;
 import com.shopsphere.entity.*;
 import com.shopsphere.exception.BadRequestException;
 import com.shopsphere.repository.*;
@@ -118,7 +118,7 @@ class CheckoutConcurrencyTest {
             req.setPaymentMethod("COD");
             try {
                 barrier.await(); // release both threads together to maximise overlap
-                OrderResponse response = orderService.checkout(req);
+                CheckoutResponse response = orderService.checkout(req);
                 return Outcome.success(response);
             } catch (BadRequestException e) {
                 return Outcome.rejected(e.getMessage().contains("Not enough stock"));
@@ -156,7 +156,7 @@ class CheckoutConcurrencyTest {
             this.rejectedForStock = rejectedForStock;
         }
 
-        static Outcome success(OrderResponse ignored) {
+        static Outcome success(CheckoutResponse ignored) {
             return new Outcome(true, false);
         }
 

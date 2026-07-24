@@ -1,5 +1,6 @@
 package com.shopsphere.service;
 
+import com.shopsphere.dto.CheckoutResponse;
 import com.shopsphere.dto.OrderRequest;
 import com.shopsphere.dto.OrderResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +32,7 @@ class OrderServiceRetryTest {
     @BeforeEach
     void setUp() {
         // Only the retry wrapper + `self` are exercised here; repos are never touched.
-        orderService = new OrderService(null, null, null, null, null, null, self);
+        orderService = new OrderService(null, null, null, null, null, null, null, self);
     }
 
     private OrderRequest request() {
@@ -59,15 +60,16 @@ class OrderServiceRetryTest {
     @Test
     void checkout_succeedsOnThirdAttempt_afterTwoConflicts() {
         OrderRequest req = request();
-        OrderResponse success = OrderResponse.builder().orderId(100L).status("PLACED").build();
+        CheckoutResponse success = CheckoutResponse.builder()
+                .order(OrderResponse.builder().orderId(100L).status("PLACED").build()).build();
         when(self.doCheckout(req))
                 .thenThrow(conflict())
                 .thenThrow(conflict())
                 .thenReturn(success);
 
-        OrderResponse result = orderService.checkout(req);
+        CheckoutResponse result = orderService.checkout(req);
 
-        assertThat(result.getOrderId()).isEqualTo(100L);
+        assertThat(result.getOrder().getOrderId()).isEqualTo(100L);
         verify(self, times(3)).doCheckout(req);
     }
 
@@ -76,14 +78,15 @@ class OrderServiceRetryTest {
         // A real MySQL deadlock surfaces as CannotAcquireLockException, not an optimistic-lock
         // failure. The retry must cover it too (both are ConcurrencyFailureException).
         OrderRequest req = request();
-        OrderResponse success = OrderResponse.builder().orderId(101L).status("PLACED").build();
+        CheckoutResponse success = CheckoutResponse.builder()
+                .order(OrderResponse.builder().orderId(101L).status("PLACED").build()).build();
         when(self.doCheckout(req))
                 .thenThrow(new CannotAcquireLockException("Deadlock found"))
                 .thenReturn(success);
 
-        OrderResponse result = orderService.checkout(req);
+        CheckoutResponse result = orderService.checkout(req);
 
-        assertThat(result.getOrderId()).isEqualTo(101L);
+        assertThat(result.getOrder().getOrderId()).isEqualTo(101L);
         verify(self, times(2)).doCheckout(req);
     }
 

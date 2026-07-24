@@ -7,4 +7,4 @@ export const WS_BASE = API_BASE + "/ws";
 // Google OAuth 2.0 Web client ID (from Google Cloud Console). Leave empty to keep the
 // "Continue with Google" button as a coming-soon placeholder. Must match the backend's
 // GOOGLE_CLIENT_ID for the ID token to verify.
-export const GOOGLE_CLIENT_ID = "";
+export const GOOGLE_CLIENT_ID ="82082764670-8rdsqvhamiujjhirf9ovjnqvnhm3u3cf.apps.googleusercontent.com";

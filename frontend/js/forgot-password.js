@@ -72,7 +72,6 @@ emailForm.addEventListener('submit', async (e) => {
         await auth.requestPasswordReset(email);
         resetEmail = email;
         document.getElementById('otp-email-display').textContent = email;
-        // Backend is non-enumerating: this generic success shows regardless of existence.
         showToast('If an account exists for that email, a reset code has been sent.', 'success');
         showSection(emailSection, otpSection, otpBoxes[0]);
         startTimer();

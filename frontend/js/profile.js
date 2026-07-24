@@ -40,14 +40,53 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = 'login.html';
         return;
     }
+    // Fast fail-safe: add class immediately if cached role is Admin
+    if (auth.isAdmin()) {
+        document.body.classList.add('is-admin');
+    }
     initProfile();
 });
 
 async function initProfile() {
     try {
         showLoader();
-        await loadProfileInfo();
-        await loadAddresses();
+        const user = await loadProfileInfo();
+        const isAdmin = user && user.role === 'ADMIN';
+        
+        // Handle Back button role-based routing
+        const backBtn = document.getElementById('profile-back-btn');
+        if (backBtn) {
+            backBtn.removeAttribute('onclick');
+            backBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (isAdmin) {
+                    if (history.length > 1) {
+                        history.back();
+                    } else {
+                        window.location.href = 'admin.html';
+                    }
+                } else {
+                    if (history.length > 1) {
+                        history.back();
+                    } else {
+                        window.location.href = 'index.html';
+                    }
+                }
+            });
+        }
+
+        // Remove shipping addresses section if administrator, otherwise load them
+        if (isAdmin) {
+            document.body.classList.add('is-admin');
+            const shippingSection = document.getElementById('shipping-addresses-section');
+            if (shippingSection) {
+                shippingSection.remove();
+            }
+        } else {
+            document.body.classList.remove('is-admin');
+            await loadAddresses();
+        }
+
         setupChangePasswordStrength();
         setupDetailsUpdate();
         setupPasswordChange();
@@ -68,6 +107,9 @@ async function loadProfileInfo() {
     displayName.textContent = user.name || 'Anonymous';
     displayEmail.textContent = user.email;
     displayRole.textContent = user.role || 'CUSTOMER';
+    if (user.role) {
+        localStorage.setItem('role', user.role);
+    }
 
     nameInput.value = user.name || '';
     emailInput.value = user.email || '';
@@ -82,6 +124,7 @@ async function loadProfileInfo() {
         avatarPlaceholder.style.display = 'flex';
         avatarPlaceholder.textContent = user.name ? user.name.charAt(0).toUpperCase() : 'U';
     }
+    return user;
 }
 
 // Load user shipping addresses

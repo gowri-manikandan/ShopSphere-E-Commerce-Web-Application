@@ -72,6 +72,7 @@ if (GOOGLE_CLIENT_ID) {
     const waitForGsi = setInterval(() => {
         if (window.google && window.google.accounts && window.google.accounts.id) {
             clearInterval(waitForGsi);
+            console.log("Google Client ID:", GOOGLE_CLIENT_ID);
             window.google.accounts.id.initialize({
                 client_id: GOOGLE_CLIENT_ID,
                 callback: onGoogleCredential

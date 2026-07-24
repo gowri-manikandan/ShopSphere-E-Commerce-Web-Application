@@ -1,6 +1,7 @@
 package com.shopsphere.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shopsphere.dto.CheckoutResponse;
 import com.shopsphere.dto.OrderRequest;
 import com.shopsphere.dto.OrderResponse;
 import com.shopsphere.security.CustomUserDetailsService;
@@ -46,13 +47,19 @@ class OrderControllerTest {
     @WithMockUser
     void checkout_valid_returns200() throws Exception {
         when(orderService.checkout(any())).thenReturn(
-                OrderResponse.builder().orderId(100L).status("PLACED").paymentStatus("SUCCESS").build());
+                CheckoutResponse.builder()
+                        .order(OrderResponse.builder().orderId(100L).status("PLACED")
+                                .paymentStatus("PENDING").build())
+                        .clientSecret("pi_test_123_secret_abc")
+                        .publishableKey("pk_test_abc")
+                        .build());
 
         mvc.perform(post("/api/orders/checkout")
                         .contentType(MediaType.APPLICATION_JSON).content(validBody()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.orderId").value(100))
-                .andExpect(jsonPath("$.status").value("PLACED"));
+                .andExpect(jsonPath("$.order.orderId").value(100))
+                .andExpect(jsonPath("$.order.status").value("PLACED"))
+                .andExpect(jsonPath("$.clientSecret").value("pi_test_123_secret_abc"));
     }
 
     @Test

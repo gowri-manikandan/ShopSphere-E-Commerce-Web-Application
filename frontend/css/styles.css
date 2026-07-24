@@ -2590,3 +2590,9 @@ footer {
     .auth-title { font-size: 24px; }
 }
 
+/* Fail-safe to hide Shipping Addresses container for Admins on My Profile */
+body.is-admin #shipping-addresses-section {
+    display: none !important;
+}
+
+

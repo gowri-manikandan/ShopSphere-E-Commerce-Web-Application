@@ -241,10 +241,14 @@ async function handlePlaceOrder() {
         placeOrderBtn.disabled = true;
         showLoader();
         
-        const orderResult = await api.post('/api/orders/checkout', {
+        const checkoutResult = await api.post('/api/orders/checkout', {
             addressId: selectedAddressId,
             paymentMethod: selectedPaymentMethod
         });
+
+        // Checkout now returns { order, clientSecret, publishableKey }; the order details
+        // are nested under `order`.
+        const order = checkoutResult.order || checkoutResult;
 
         // Cart was cleared server-side on checkout; sync the navbar badge.
         await refreshCartCount();
@@ -263,19 +267,19 @@ async function handlePlaceOrder() {
                 <div class="order-receipt">
                     <div class="receipt-row">
                         <span style="font-weight:600; color:var(--text-muted);">Order ID</span>
-                        <span style="font-family:monospace; font-weight:700;">#${orderResult.orderId}</span>
+                        <span style="font-family:monospace; font-weight:700;">#${order.orderId}</span>
                     </div>
                     <div class="receipt-row">
                         <span style="font-weight:600; color:var(--text-muted);">Total Amount</span>
-                        <span style="font-weight:700;">₹${orderResult.totalAmount.toFixed(2)}</span>
+                        <span style="font-weight:700;">₹${Number(order.totalAmount).toFixed(2)}</span>
                     </div>
                     <div class="receipt-row">
                         <span style="font-weight:600; color:var(--text-muted);">Payment Method</span>
-                        <span style="font-weight:700;">${orderResult.paymentMethod}</span>
+                        <span style="font-weight:700;">${order.paymentMethod}</span>
                     </div>
                     <div class="receipt-row">
                         <span style="font-weight:600; color:var(--text-muted);">Transaction Ref</span>
-                        <span style="font-family:monospace; font-size:12px;">${orderResult.transactionRef || 'N/A'}</span>
+                        <span style="font-family:monospace; font-size:12px;">${order.transactionRef || 'N/A'}</span>
                     </div>
                 </div>
             </div>

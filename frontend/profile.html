@@ -15,7 +15,7 @@
 
     <!-- Main Container -->
     <main class="container">
-        <button type="button" class="back-link" onclick="history.length &gt; 1 ? history.back() : (window.location.href='index.html')">
+        <button type="button" class="back-link" id="profile-back-btn" onclick="history.length &gt; 1 ? history.back() : (window.location.href='index.html')">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" width="16" height="16">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
@@ -94,7 +94,7 @@
                 </div>
 
                 <!-- Section 3: Shipping Addresses -->
-                <div class="profile-section-card">
+                <div class="profile-section-card" id="shipping-addresses-section">
                     <h3 class="profile-section-title">Saved Shipping Addresses</h3>
                     
                     <div class="address-list" id="addresses-container">
@@ -138,6 +138,6 @@
     </main>
 
     <!-- Main JavaScript Logic -->
-    <script type="module" src="js/profile.js"></script>
+    <script type="module" src="js/profile.js?v=1.2"></script>
 </body>
 </html>

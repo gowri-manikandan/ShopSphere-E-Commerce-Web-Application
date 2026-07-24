@@ -54,6 +54,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/search/**").permitAll()
+                // Stripe webhook: called server-to-server with no JWT; authenticated by its
+                // Stripe-Signature header inside PaymentService, not the HTTP chain (§9).
+                .requestMatchers(HttpMethod.POST, "/api/payments/webhook").permitAll()
                 // SockJS handshake + transport fallbacks; STOMP frames are authorized
                 // by StompAuthChannelInterceptor, not the HTTP chain
                 .requestMatchers("/ws/**").permitAll()

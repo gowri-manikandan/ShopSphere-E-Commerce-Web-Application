@@ -37,6 +37,11 @@ public class Payment {
     @Column(name = "transaction_ref", length = 100)
     private String transactionRef;
 
+    // Stripe PaymentIntent id (pi_...). Null for COD / mock payments. Used to
+    // correlate an incoming webhook back to this payment (§9).
+    @Column(name = "payment_intent_id", length = 255, unique = true)
+    private String paymentIntentId;
+
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 }

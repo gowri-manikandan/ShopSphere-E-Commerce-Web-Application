@@ -1,5 +1,6 @@
 package com.shopsphere.exception;
 
+import com.stripe.exception.SignatureVerificationException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.http.HttpStatus;
@@ -68,6 +69,20 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT,
                 "This item was updated by another request at the same moment. Please try again.",
                 request);
+    }
+
+    // Stripe webhook signature could not be verified — reject as a bad request (§9).
+    @ExceptionHandler(SignatureVerificationException.class)
+    public ResponseEntity<ErrorResponse> handleStripeSignature(SignatureVerificationException ex,
+                                                               HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, "Invalid Stripe webhook signature", request);
+    }
+
+    // Payment processing failure (Stripe misconfig, declined charge, refund error) (§9).
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<ErrorResponse> handlePayment(PaymentException ex,
+                                                       HttpServletRequest request) {
+        return build(HttpStatus.PAYMENT_REQUIRED, ex.getMessage(), request);
     }
 
     // Wrong HTTP method (e.g. opening a POST-only endpoint in the browser address bar)

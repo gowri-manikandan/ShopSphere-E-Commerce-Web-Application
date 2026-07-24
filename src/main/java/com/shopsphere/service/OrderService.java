@@ -1,5 +1,6 @@
 package com.shopsphere.service;
 
+import com.shopsphere.dto.CheckoutResponse;
 import com.shopsphere.dto.OrderRequest;
 import com.shopsphere.dto.OrderResponse;
 import com.shopsphere.entity.*;
@@ -10,6 +11,7 @@ import com.shopsphere.realtime.OrderStatusChangedEvent;
 import com.shopsphere.realtime.StockChangedEvent;
 import com.shopsphere.repository.*;
 import com.shopsphere.security.SecurityUtils;
+import com.stripe.model.PaymentIntent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.ConcurrencyFailureException;
@@ -38,6 +40,7 @@ public class OrderService {
     private final AddressRepository addressRepository;
     private final SecurityUtils securityUtils;
     private final ApplicationEventPublisher eventPublisher;
+    private final PaymentService paymentService;
     private final OrderService self;
 
     public OrderService(OrderRepository orderRepository,
@@ -46,6 +49,7 @@ public class OrderService {
                         AddressRepository addressRepository,
                         SecurityUtils securityUtils,
                         ApplicationEventPublisher eventPublisher,
+                        PaymentService paymentService,
                         @Lazy OrderService self) {
         this.orderRepository = orderRepository;
         this.cartItemRepository = cartItemRepository;
@@ -53,6 +57,7 @@ public class OrderService {
         this.addressRepository = addressRepository;
         this.securityUtils = securityUtils;
         this.eventPublisher = eventPublisher;
+        this.paymentService = paymentService;
         // Own proxy: the retry loop must call the @Transactional methods through the
         // proxy (self-invocation via `this` would skip transaction handling entirely).
         this.self = self;
@@ -64,7 +69,9 @@ public class OrderService {
      *  2. Validate stock for each item
      *  3. Create the Order + OrderItems (price snapshot)
      *  4. Deduct stock from products
-     *  5. Create a mock Payment (PENDING -> SUCCESS, COD stays PENDING)
+     *  5. Create the Payment (PENDING). Card orders get a Stripe PaymentIntent and stay
+     *     PENDING until the payment_intent.succeeded webhook confirms them; COD stays PENDING
+     *     until delivery.
      *  6. Clear the cart
      * If anything throws, the whole thing rolls back.
      *
@@ -72,12 +79,12 @@ public class OrderService {
      * bumps Product.version, which fails this transaction at commit — rerunning it
      * re-reads the fresh stock and re-validates.
      */
-    public OrderResponse checkout(OrderRequest request) {
+    public CheckoutResponse checkout(OrderRequest request) {
         return withStockConflictRetry(() -> self.doCheckout(request));
     }
 
     @Transactional
-    public OrderResponse doCheckout(OrderRequest request) {
+    public CheckoutResponse doCheckout(OrderRequest request) {
         User user = securityUtils.getCurrentUser();
 
         List<CartItem> cartItems = cartItemRepository.findByUserId(user.getId());
@@ -128,23 +135,54 @@ public class OrderService {
 
         order.setTotalAmount(total);
 
-        // ----- Mock payment -----
+        boolean isCod = method == PaymentMethod.COD;
+
+        // Payment starts PENDING for everything. COD is settled on delivery; card orders are
+        // confirmed asynchronously by the Stripe webhook (§9).
         Payment payment = Payment.builder()
                 .order(order)
                 .amount(total)
                 .method(method)
-                .status(method == PaymentMethod.COD ? PaymentStatus.PENDING : PaymentStatus.SUCCESS)
-                .transactionRef("TXN-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase())
-                .paidAt(method == PaymentMethod.COD ? null : LocalDateTime.now())
+                .status(PaymentStatus.PENDING)
+                .transactionRef(isCod
+                        ? "COD-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase()
+                        : null)
+                .paidAt(null)
                 .build();
         order.setPayment(payment);
 
-        Order saved = orderRepository.save(order); // cascades items + payment
+        Order saved = orderRepository.save(order); // cascades items + payment, assigns ids
+
+        String clientSecret = null;
+        if (!isCod) {
+            if (paymentService.isStripeEnabled()) {
+                // Order now has an id, so the intent can carry metadata.orderId for the webhook.
+                // A Stripe failure throws PaymentException -> rolls back this transaction,
+                // restoring the stock we just deducted.
+                PaymentIntent intent = paymentService.createIntent(saved);
+                payment.setPaymentIntentId(intent.getId());
+                payment.setTransactionRef(intent.getId());
+                clientSecret = intent.getClientSecret();
+            } else {
+                // Stripe not configured (local/dev): mock an immediate successful payment so
+                // checkout still completes end-to-end without live payments. In prod Stripe is
+                // always configured and this branch is never taken.
+                payment.setStatus(PaymentStatus.SUCCESS);
+                payment.setPaidAt(LocalDateTime.now());
+                payment.setTransactionRef(
+                        "MOCK-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase());
+                order.setStatus(OrderStatus.CONFIRMED);
+            }
+        }
 
         // Empty the cart
         cartItemRepository.deleteByUserId(user.getId());
 
-        return OrderMapper.toResponse(saved);
+        return CheckoutResponse.builder()
+                .order(OrderMapper.toResponse(saved))
+                .clientSecret(clientSecret)
+                .publishableKey(isCod ? null : paymentService.getPublishableKey())
+                .build();
     }
 
     @Transactional(readOnly = true)
@@ -236,7 +274,7 @@ public class OrderService {
 
     // ----- helpers -----
 
-    private OrderResponse withStockConflictRetry(Supplier<OrderResponse> action) {
+    private <T> T withStockConflictRetry(Supplier<T> action) {
         ConcurrencyFailureException conflict = null;
         for (int attempt = 1; attempt <= MAX_STOCK_CONFLICT_ATTEMPTS; attempt++) {
             try {
