@@ -61,7 +61,8 @@ export function renderNavbar() {
                 <ul class="nav-links">
                     <li><a href="index.html" class="nav-link ${path === 'index.html' ? 'active' : ''}">Catalog</a></li>
                     ${isLoggedIn && !isAdmin ? `<li><a href="orders.html" class="nav-link ${path === 'orders.html' ? 'active' : ''}">My Orders</a></li>` : ''}
-                    ${isAdmin ? `<li><a href="admin.html" class="nav-link ${path === 'admin.html' ? 'active' : ''}">Admin Dashboard</a></li>` : ''}
+                    ${isAdmin ? `<li><a href="admin-dashboard.html" class="nav-link ${path === 'admin-dashboard.html' ? 'active' : ''}">Dashboard</a></li>` : ''}
+                    ${isAdmin ? `<li><a href="admin.html" class="nav-link ${path === 'admin.html' ? 'active' : ''}">Manage</a></li>` : ''}
                 </ul>
 
                 <div class="nav-actions">

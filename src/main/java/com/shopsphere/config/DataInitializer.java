@@ -9,6 +9,7 @@ import com.shopsphere.repository.ProductRepository;
 import com.shopsphere.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,7 @@ import java.math.BigDecimal;
  *  Admin login ->  email: admin@shopsphere.com   password: admin123
  */
 @Component
+@Order(1)
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 

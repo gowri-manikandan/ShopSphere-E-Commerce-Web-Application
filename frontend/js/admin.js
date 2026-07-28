@@ -5,17 +5,7 @@ import './navbar.js';
 
 // Admin page states
 let categoriesCache = [];
-let activeTab = 'dashboard-panel';
-
-// Store Chart instances to avoid duplicates overlay canvas context bugs
-let charts = {
-    monthlyRevenue: null,
-    monthlyOrders: null,
-    orderStatus: null,
-    categoryProducts: null,
-    userRegistration: null,
-    topProducts: null
-};
+let activeTab = 'products-panel';
 
 // DOM Elements
 const tabBtns = document.querySelectorAll('.admin-tab-btn');
@@ -73,197 +63,13 @@ async function loadCategoriesCache() {
 
 // Routing tab content fetches
 function loadTabContent(panelId) {
-    if (panelId === 'dashboard-panel') {
-        loadDashboardStats();
-    } else if (panelId === 'products-panel') {
+    if (panelId === 'products-panel') {
         loadAdminProducts();
     } else if (panelId === 'categories-panel') {
         loadAdminCategories();
     } else if (panelId === 'orders-panel') {
         loadAdminOrders();
     }
-}
-
-// ==========================================
-// Dashboard Stats and Charts
-// ==========================================
-async function loadDashboardStats() {
-    try {
-        showLoader();
-        const stats = await api.get('/api/admin/dashboard/stats');
-        
-        // Populate stats counts
-        document.getElementById('stats-total-users').textContent = stats.totalUsers;
-        document.getElementById('stats-total-revenue').textContent = `₹${stats.totalRevenue ? stats.totalRevenue.toFixed(2) : '0.00'}`;
-        document.getElementById('stats-total-products').textContent = stats.totalProducts;
-        document.getElementById('stats-total-orders').textContent = stats.totalOrders;
-        document.getElementById('stats-delivered-orders').textContent = stats.deliveredOrders;
-        document.getElementById('stats-cancelled-orders').textContent = stats.cancelledOrders;
-
-        // Render the 6 charts
-        renderMonthlyRevenueChart(stats.monthlySales);
-        renderMonthlyOrdersChart(stats.monthlySales);
-        renderOrderStatusChart(stats.orderStatusCounts);
-        renderCategoryProductsChart(stats.categoryProductCounts);
-        renderUserRegistrationChart(stats.userRegistrationTrends);
-        renderTopProductsChart(stats.topSellingProducts);
-
-    } catch (err) {
-        showToast(err.message || 'Failed to load dashboard stats.', 'error');
-    } finally {
-        hideLoader();
-    }
-}
-
-function renderMonthlyRevenueChart(data) {
-    if (charts.monthlyRevenue) charts.monthlyRevenue.destroy();
-    const ctx = document.getElementById('chart-monthly-revenue').getContext('2d');
-    const labels = data.map(d => d.month);
-    const values = data.map(d => d.sales);
-
-    charts.monthlyRevenue = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels,
-            datasets: [{
-                label: 'Revenue (₹)',
-                data: values,
-                borderColor: '#6366f1',
-                backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } }
-        }
-    });
-}
-
-function renderMonthlyOrdersChart(data) {
-    if (charts.monthlyOrders) charts.monthlyOrders.destroy();
-    const ctx = document.getElementById('chart-monthly-orders').getContext('2d');
-    const labels = data.map(d => d.month);
-    const values = data.map(d => Math.max(1, Math.round(d.sales / 500)));
-
-    charts.monthlyOrders = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [{
-                label: 'Order Volume',
-                data: values,
-                backgroundColor: '#3b82f6',
-                borderRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } }
-        }
-    });
-}
-
-function renderOrderStatusChart(data) {
-    if (charts.orderStatus) charts.orderStatus.destroy();
-    const ctx = document.getElementById('chart-order-status').getContext('2d');
-    const labels = data.map(d => d.status);
-    const values = data.map(d => d.count);
-
-    charts.orderStatus = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels,
-            datasets: [{
-                data: values,
-                backgroundColor: ['#f59e0b', '#10b981', '#ef4444', '#3b82f6']
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-    });
-}
-
-function renderCategoryProductsChart(data) {
-    if (charts.categoryProducts) charts.categoryProducts.destroy();
-    const ctx = document.getElementById('chart-category-products').getContext('2d');
-    const labels = data.map(d => d.categoryName);
-    const values = data.map(d => d.count);
-
-    charts.categoryProducts = new Chart(ctx, {
-        type: 'polarArea',
-        data: {
-            labels,
-            datasets: [{
-                data: values,
-                backgroundColor: ['rgba(99, 102, 241, 0.6)', 'rgba(16, 185, 129, 0.6)', 'rgba(245, 158, 11, 0.6)', 'rgba(59, 130, 246, 0.6)']
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false
-        }
-    });
-}
-
-function renderUserRegistrationChart(data) {
-    if (charts.userRegistration) charts.userRegistration.destroy();
-    const ctx = document.getElementById('chart-user-registration').getContext('2d');
-    const labels = data.map(d => d.date);
-    const values = data.map(d => d.count);
-
-    charts.userRegistration = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels,
-            datasets: [{
-                label: 'New Registrations',
-                data: values,
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } }
-        }
-    });
-}
-
-function renderTopProductsChart(data) {
-    if (charts.topProducts) charts.topProducts.destroy();
-    const ctx = document.getElementById('chart-top-products').getContext('2d');
-    const labels = data.map(d => d.productName);
-    const values = data.map(d => d.quantity);
-
-    charts.topProducts = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [{
-                label: 'Units Sold',
-                data: values,
-                backgroundColor: '#8b5cf6',
-                borderRadius: 4
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } }
-        }
-    });
 }
 
 // ==========================================
@@ -684,9 +490,35 @@ async function loadAdminOrders() {
                     <span style="font-size:12px; font-weight:600; display:block; text-transform:uppercase;">${order.paymentMethod}</span>
                     <span class="badge ${order.paymentStatus === 'SUCCESS' ? 'badge-success' : (order.paymentStatus === 'FAILED' ? 'badge-danger' : 'badge-warning')}" style="font-size:10px; padding: 2px 6px;">${order.paymentStatus}</span>
                 </td>
-                <td>${selectHtml}</td>
+                <td>
+                    ${selectHtml}
+                    ${order.paymentStatus === 'SUCCESS' ? `<button class="btn btn-secondary btn-sm admin-refund-btn" data-order-id="${order.orderId}" style="margin-top:6px;">Refund</button>` : ''}
+                </td>
                 <td style="font-family:monospace; font-size:12px;">${order.transactionRef || 'N/A'}</td>
             `;
+
+            // Refund handler (backend validates the payment is a refundable online capture)
+            const refundBtn = tr.querySelector('.admin-refund-btn');
+            if (refundBtn) {
+                refundBtn.addEventListener('click', () => {
+                    showConfirm(
+                        'Refund Order',
+                        `Refund and cancel order #${order.orderId}? This restores stock and cannot be undone.`,
+                        async () => {
+                            try {
+                                showLoader();
+                                await api.post(`/api/admin/orders/${order.orderId}/refund`);
+                                showToast(`Order #${order.orderId} refunded and cancelled.`, 'success');
+                                loadAdminOrders();
+                            } catch (err) {
+                                showToast(err.message || 'Refund failed.', 'error');
+                            } finally {
+                                hideLoader();
+                            }
+                        }
+                    );
+                });
+            }
 
             // Change event handler
             const selectEl = tr.querySelector('.admin-status-select');

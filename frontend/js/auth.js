@@ -117,8 +117,8 @@ export const auth = {
         const path = window.location.pathname.split('/').pop() || 'index.html';
         const user = this.getUser();
 
-        const protectedPages = ['cart.html', 'checkout.html', 'orders.html', 'admin.html'];
-        const adminPages = ['admin.html'];
+        const protectedPages = ['cart.html', 'checkout.html', 'orders.html', 'admin.html', 'admin-dashboard.html'];
+        const adminPages = ['admin.html', 'admin-dashboard.html'];
 
         if (protectedPages.includes(path) && !user) {
             window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.pathname + window.location.search);

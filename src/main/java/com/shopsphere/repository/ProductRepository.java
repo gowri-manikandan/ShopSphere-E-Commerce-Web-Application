@@ -16,4 +16,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByNameContainingIgnoreCase(String keyword);
 
     Page<Product> findByNameContainingIgnoreCase(String keyword, Pageable pageable);
+
+    // Low-stock alerts widget (§ dashboard): products at or below the threshold, neediest first.
+    List<Product> findByStockQuantityLessThanEqualOrderByStockQuantityAsc(int threshold);
 }

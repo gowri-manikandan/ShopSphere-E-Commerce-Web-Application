@@ -34,6 +34,13 @@ public class CloudinaryConfig {
 
     @PostConstruct
     void init() {
+        // Defensive trim: env values are easy to paste with stray leading/trailing spaces
+        // (e.g. "= Root"), which would corrupt the request URL and the signature.
+        cloudName = trim(cloudName);
+        apiKey = trim(apiKey);
+        apiSecret = trim(apiSecret);
+        folder = trim(folder);
+
         if (isConfigured()) {
             log.info("Cloudinary configured (cloud={}) — avatar uploads go to the CDN.", cloudName);
         } else {
@@ -50,5 +57,9 @@ public class CloudinaryConfig {
 
     private boolean isNotBlank(String s) {
         return s != null && !s.isBlank();
+    }
+
+    private String trim(String s) {
+        return s == null ? null : s.trim();
     }
 }

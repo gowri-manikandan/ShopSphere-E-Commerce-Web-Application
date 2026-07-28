@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ShopSphere Super Admin analytics dashboard — sales reports, top products, trends, and alerts.">
+    <title>Super Admin Dashboard — ShopSphere</title>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Shared Navigation Bar -->
+    <header id="navbar-container"></header>
+
+    <div class="admin-dash-layout">
+
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <h3 class="admin-sidebar-title">Analytics</h3>
+            <nav class="admin-sidebar-nav">
+                <a href="#section-overview" class="admin-sidebar-link active">Overview</a>
+                <a href="#section-sales" class="admin-sidebar-link">Sales Report</a>
+                <a href="#section-top" class="admin-sidebar-link">Top Products</a>
+                <a href="#section-trend" class="admin-sidebar-link">Product Trend</a>
+                <a href="#section-lowstock" class="admin-sidebar-link">Low Stock</a>
+                <a href="#section-recent" class="admin-sidebar-link">Recent Orders</a>
+                <a href="admin.html" class="admin-sidebar-link external">Manage Catalog &rarr;</a>
+            </nav>
+        </aside>
+
+        <!-- Main -->
+        <main class="admin-dash-main">
+
+            <!-- Top bar: title + global search + month filter -->
+            <div class="admin-topbar">
+                <h2 class="admin-topbar-title">Super Admin Dashboard</h2>
+                <div class="admin-topbar-controls">
+                    <div class="admin-search-wrap">
+                        <input type="search" id="global-search" class="form-control"
+                               placeholder="Search products, orders, customers…" autocomplete="off">
+                        <div id="search-results" class="admin-search-results hidden"></div>
+                    </div>
+                    <label class="admin-month-filter">
+                        <span>Month</span>
+                        <input type="month" id="month-picker" class="form-control">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Overview cards -->
+            <section id="section-overview" class="admin-dash-section">
+                <div class="dashboard-stats-grid">
+                    <div class="stat-card revenue">
+                        <span class="stat-label">All-Time Revenue</span>
+                        <span class="stat-value" id="ov-alltime-revenue">₹0.00</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Revenue (Month)</span>
+                        <span class="stat-value" id="ov-period-revenue">₹0.00</span>
+                    </div>
+                    <div class="stat-card info">
+                        <span class="stat-label">Orders (Month)</span>
+                        <span class="stat-value" id="ov-period-orders">0</span>
+                    </div>
+                    <div class="stat-card delivered">
+                        <span class="stat-label">Avg Order Value</span>
+                        <span class="stat-value" id="ov-avg-order">₹0.00</span>
+                    </div>
+                    <div class="stat-card users">
+                        <span class="stat-label">Total Customers</span>
+                        <span class="stat-value" id="ov-total-customers">0</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sales report -->
+            <section id="section-sales" class="admin-dash-section">
+                <div class="section-header">
+                    <h3 class="section-title">Sales Report
+                        <span id="sales-comparison" class="badge badge-info" style="margin-left:8px;"></span>
+                    </h3>
+                    <button class="btn btn-secondary btn-sm" id="export-csv-btn">Export CSV</button>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-state" id="sales-state">Loading…</div>
+                    <div class="chart-canvas-wrap" style="position:relative; height:300px; width:100%;">
+                        <canvas id="chart-sales"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Top products -->
+            <section id="section-top" class="admin-dash-section">
+                <div class="section-header">
+                    <h3 class="section-title">Top Selling Products</h3>
+                    <div class="admin-toggle" id="top-sort-toggle">
+                        <button class="admin-toggle-btn active" data-sort="units">By Units</button>
+                        <button class="admin-toggle-btn" data-sort="revenue">By Revenue</button>
+                    </div>
+                </div>
+                <div class="dashboard-charts-grid">
+                    <div class="chart-card">
+                        <div class="chart-state" id="top-state">Loading…</div>
+                        <div class="chart-canvas-wrap" style="position:relative; height:320px; width:100%;">
+                            <canvas id="chart-top"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="table-responsive">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr><th>#</th><th>Product</th><th>Units</th><th>Revenue</th></tr>
+                                </thead>
+                                <tbody id="top-products-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Product sales trend -->
+            <section id="section-trend" class="admin-dash-section">
+                <div class="section-header">
+                    <h3 class="section-title">Product Sales Trend</h3>
+                    <div class="admin-search-wrap">
+                        <input type="search" id="trend-search" class="form-control"
+                               placeholder="Search a product…" autocomplete="off">
+                        <div id="trend-results" class="admin-search-results hidden"></div>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="trend-summary" id="trend-summary" style="margin-bottom:12px; color:var(--text-muted);">
+                        Select a product to see its last-12-months trend.
+                    </div>
+                    <div class="chart-state hidden" id="trend-state"></div>
+                    <div class="chart-canvas-wrap" style="position:relative; height:300px; width:100%;">
+                        <canvas id="chart-trend"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Low stock -->
+            <section id="section-lowstock" class="admin-dash-section">
+                <div class="section-header">
+                    <h3 class="section-title">Low-Stock Alerts</h3>
+                </div>
+                <div class="chart-card">
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr><th>Product</th><th>Stock</th><th>Price</th><th>Status</th></tr>
+                            </thead>
+                            <tbody id="lowstock-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent orders -->
+            <section id="section-recent" class="admin-dash-section">
+                <div class="section-header">
+                    <h3 class="section-title">Recent Orders</h3>
+                    <label class="admin-month-filter">
+                        <span>Status</span>
+                        <select id="recent-status-filter" class="form-control">
+                            <option value="">All</option>
+                            <option value="PLACED">Placed</option>
+                            <option value="CONFIRMED">Confirmed</option>
+                            <option value="PACKED">Packed</option>
+                            <option value="SHIPPED">Shipped</option>
+                            <option value="DELIVERED">Delivered</option>
+                            <option value="CANCELLED">Cancelled</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="chart-card">
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr><th>Order</th><th>Date</th><th>Total</th><th>Payment</th><th>Status</th></tr>
+                            </thead>
+                            <tbody id="recent-orders-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div class="admin-pagination">
+                        <button class="btn btn-secondary btn-sm" id="recent-prev" disabled>Prev</button>
+                        <span id="recent-page-info">Page 1</span>
+                        <button class="btn btn-secondary btn-sm" id="recent-next" disabled>Next</button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script type="module" src="js/admin-dashboard.js?v=1"></script>
+</body>
+</html>
