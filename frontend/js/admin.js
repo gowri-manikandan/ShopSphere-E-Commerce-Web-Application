@@ -50,6 +50,17 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initAdminDashboard() {
     await loadCategoriesCache();
     loadTabContent(activeTab);
+
+    // Deep-link from the catalog's admin "Edit" button: ?edit={productId} opens its edit modal.
+    const editId = new URLSearchParams(window.location.search).get('edit');
+    if (editId) {
+        try {
+            const product = await api.get(`/api/products/${editId}`, true);
+            openProductModal(product);
+        } catch (err) {
+            showToast('Could not open that product for editing.', 'error');
+        }
+    }
 }
 
 // Load categories cache for selects dropdowns

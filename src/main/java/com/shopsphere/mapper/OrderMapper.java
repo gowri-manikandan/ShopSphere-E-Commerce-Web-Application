@@ -33,6 +33,7 @@ public class OrderMapper {
         return OrderItemResponse.builder()
                 .productId(item.getProduct() != null ? item.getProduct().getId() : null)
                 .productName(item.getProduct() != null ? item.getProduct().getName() : "Deleted Product")
+                .imageUrl(item.getProduct() != null ? item.getProduct().getImageUrl() : null)
                 .quantity(item.getQuantity())
                 .price(item.getPrice())
                 .subtotal(item.getPrice().multiply(java.math.BigDecimal.valueOf(item.getQuantity())))

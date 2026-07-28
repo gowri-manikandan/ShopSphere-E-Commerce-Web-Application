@@ -1,6 +1,6 @@
 import { api } from './api.js';
 import { auth } from './auth.js';
-import { showToast } from './ui.js';
+import { showToast, showConfirm } from './ui.js';
 import { getProductSkeleton, showLoader, hideLoader } from './ui.js';
 import { refreshCartCount } from './navbar.js';
 import { subscribeWhenConnected } from './realtime.js';
@@ -192,7 +192,8 @@ function renderProductCard(product) {
     card.dataset.productId = product.id; // hook for live stock updates
 
     const isOutOfStock = product.stockQuantity <= 0;
-    
+    const isAdmin = auth.isAdmin();
+
     // Default image if null
     const fallbackImage = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjY2JkNWUxIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjEiIGQ9Ik0yLjI1IDE1YTQuNSA0LjUgMCAwMDQuNSA0LjVIMThhMy43NSAzLjc1IDAgMDAxLjMzMi03LjI1NyAzIDMgMCAwMC0zLjc1OC0zLjg0OCA1LjI1IDUuMjUgMCAwMC0xMC4yMzMgMi4zM0E0LjUwMiA0LjUwMiAwIDAwMi4yNSAxNXoiIC8+PC9zdmc+`;
     const imgUrl = product.imageUrl || fallbackImage;
@@ -217,12 +218,19 @@ function renderProductCard(product) {
             </div>
             <div class="product-card-footer">
                 <span class="product-card-price">₹${product.price.toFixed(2)}</span>
-                <button class="btn btn-primary btn-sm add-to-cart-btn" data-product-id="${product.id}" ${isOutOfStock ? 'disabled' : ''}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                    Add
-                </button>
+                ${isAdmin ? `
+                    <div class="admin-actions-cell">
+                        <a href="admin.html?edit=${product.id}" class="btn btn-secondary btn-sm">Edit</a>
+                        <button class="btn btn-danger btn-sm admin-delete-btn" data-product-id="${product.id}">Delete</button>
+                    </div>
+                ` : `
+                    <button class="btn btn-primary btn-sm add-to-cart-btn" data-product-id="${product.id}" ${isOutOfStock ? 'disabled' : ''}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        Add
+                    </button>
+                `}
             </div>
         </div>
     `;
@@ -262,6 +270,31 @@ function renderProductCard(product) {
                     cartBtn.disabled = false;
                 }
             }
+        });
+    }
+
+    // Admin: delete this product directly from the catalog (Edit deep-links to the Manage page).
+    const deleteBtn = card.querySelector('.admin-delete-btn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showConfirm(
+                'Delete Product',
+                `Delete "${product.name}"? This cannot be undone.`,
+                async () => {
+                    try {
+                        showLoader();
+                        await api.delete(`/api/products/${product.id}`);
+                        showToast(`"${product.name}" deleted.`, 'success');
+                        card.remove();
+                    } catch (err) {
+                        showToast(err.message || 'Failed to delete product.', 'error');
+                    } finally {
+                        hideLoader();
+                    }
+                }
+            );
         });
     }
 
