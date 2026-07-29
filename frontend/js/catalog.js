@@ -11,10 +11,18 @@ const categoryList = document.getElementById('category-list');
 const searchInput = document.getElementById('search-input');
 const emptyCatalogState = document.getElementById('empty-catalog-state');
 const resetFiltersBtn = document.getElementById('reset-filters-btn');
+const minPriceInput = document.getElementById('min-price-input');
+const maxPriceInput = document.getElementById('max-price-input');
+const ratingFilter = document.getElementById('rating-filter');
+const clearFiltersBtn = document.getElementById('clear-filters-btn');
 
 // Catalog state
 let activeCategoryId = null;
 let searchQuery = '';
+let minPrice = null;       // client-side price filter (₹); null = no bound
+let maxPrice = null;
+let minRating = 0;         // client-side minimum-rating filter; 0 = any
+let loadedProducts = [];   // server result for current category/search, before price/rating filters
 let debounceTimeout = null;
 let stockSubscriptions = []; // live-stock handles for the currently rendered grid
 
@@ -43,7 +51,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
     });
 
-    // Reset button listener
+    // Price filter (debounced, client-side — re-filters the loaded list without a refetch)
+    [minPriceInput, maxPriceInput].forEach(inp => {
+        if (!inp) return;
+        inp.addEventListener('input', () => {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => {
+                minPrice = minPriceInput.value !== '' ? Number(minPriceInput.value) : null;
+                maxPrice = maxPriceInput.value !== '' ? Number(maxPriceInput.value) : null;
+                applyClientFilters();
+            }, 300);
+        });
+    });
+
+    // Minimum-rating filter (client-side)
+    if (ratingFilter) {
+        ratingFilter.addEventListener('click', (e) => {
+            const btn = e.target.closest('.rating-option');
+            if (!btn) return;
+            ratingFilter.querySelectorAll('.rating-option').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            minRating = Number(btn.dataset.minRating) || 0;
+            applyClientFilters();
+        });
+    }
+
+    // Clear-all-filters button (sidebar) + empty-state reset button
+    if (clearFiltersBtn) clearFiltersBtn.addEventListener('click', resetAllFilters);
     resetFiltersBtn.addEventListener('click', resetAllFilters);
 });
 
@@ -55,6 +89,19 @@ function resetAllFilters() {
     clearCategoryHighlight();
     const allChip = document.querySelector('[data-category-id="all"]');
     if (allChip) allChip.classList.add('active');
+
+    // Clear client-side price/rating filters + their UI
+    minPrice = null;
+    maxPrice = null;
+    minRating = 0;
+    if (minPriceInput) minPriceInput.value = '';
+    if (maxPriceInput) maxPriceInput.value = '';
+    if (ratingFilter) {
+        ratingFilter.querySelectorAll('.rating-option').forEach(b => b.classList.remove('active'));
+        const anyBtn = ratingFilter.querySelector('[data-min-rating="0"]');
+        if (anyBtn) anyBtn.classList.add('active');
+    }
+
     loadProducts();
 }
 
@@ -104,11 +151,12 @@ async function loadCategories() {
     }
 }
 
-// Fetch products based on state
+// Fetch products for the active category/search (server-side), then apply the client-side
+// price + rating filters on top of that result.
 async function loadProducts() {
     productGrid.innerHTML = getProductSkeleton(4);
     emptyCatalogState.style.display = 'none';
-    
+
     try {
         let path = '/api/products';
         if (searchQuery) {
@@ -116,25 +164,45 @@ async function loadProducts() {
         } else if (activeCategoryId) {
             path += `?categoryId=${activeCategoryId}`;
         }
-        
-        const products = await api.get(path, true);
-        productGrid.innerHTML = '';
-        
-        if (!products || products.length === 0) {
-            emptyCatalogState.style.display = 'flex';
-            return;
-        }
 
-        products.forEach(product => {
-            const card = renderProductCard(product);
-            productGrid.appendChild(card);
-        });
-        subscribeToLiveStock(products);
+        loadedProducts = await api.get(path, true) || [];
+        applyClientFilters();
     } catch (err) {
         productGrid.innerHTML = '';
+        loadedProducts = [];
         showToast(err.message || 'Failed to load products', 'error');
         console.error(err);
     }
+}
+
+// Filter the already-loaded products by price + minimum rating (no refetch), then render.
+function applyClientFilters() {
+    const filtered = loadedProducts.filter(p => {
+        const price = Number(p.price);
+        if (minPrice != null && price < minPrice) return false;
+        if (maxPrice != null && price > maxPrice) return false;
+        if (minRating > 0) {
+            // Products with no reviews (null rating) don't satisfy a minimum-rating filter.
+            if (p.averageRating == null || p.averageRating < minRating) return false;
+        }
+        return true;
+    });
+    renderProductList(filtered);
+}
+
+function renderProductList(products) {
+    productGrid.innerHTML = '';
+    if (!products || products.length === 0) {
+        emptyCatalogState.style.display = 'flex';
+        subscribeToLiveStock([]); // release any stale live-stock subscriptions
+        return;
+    }
+    emptyCatalogState.style.display = 'none';
+    products.forEach(product => {
+        const card = renderProductCard(product);
+        productGrid.appendChild(card);
+    });
+    subscribeToLiveStock(products);
 }
 
 // Live stock (§5): one topic per rendered product; old handles are released on every

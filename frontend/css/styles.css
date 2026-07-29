@@ -609,6 +609,47 @@ header {
     font-weight: 600;
 }
 
+/* Price + rating filters (§6) */
+.price-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.price-filter .form-control {
+    padding: 8px 10px;
+    min-width: 0;
+}
+.price-filter-sep {
+    color: var(--text-muted);
+}
+.rating-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.rating-option {
+    width: 100%;
+    text-align: left;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background: #ffffff;
+    color: var(--text-main);
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.rating-option:hover {
+    background-color: var(--bg-main);
+}
+.rating-option.active {
+    background-color: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary-light);
+    font-weight: 600;
+}
+
 .catalog-main {
     display: flex;
     flex-direction: column;

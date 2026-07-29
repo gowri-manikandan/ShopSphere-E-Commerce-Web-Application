@@ -23,6 +23,24 @@
                 <div id="category-list" class="category-list">
                     <!-- Categories will be dynamically loaded here -->
                 </div>
+
+                <h4 class="sidebar-title" style="margin-top: 28px;">Price Range</h4>
+                <div class="price-filter">
+                    <input type="number" id="min-price-input" class="form-control" placeholder="Min ₹" min="0" aria-label="Minimum price">
+                    <span class="price-filter-sep">–</span>
+                    <input type="number" id="max-price-input" class="form-control" placeholder="Max ₹" min="0" aria-label="Maximum price">
+                </div>
+
+                <h4 class="sidebar-title" style="margin-top: 28px;">Minimum Rating</h4>
+                <div id="rating-filter" class="rating-filter">
+                    <button type="button" class="rating-option active" data-min-rating="0">Any rating</button>
+                    <button type="button" class="rating-option" data-min-rating="4">★ 4 &amp; up</button>
+                    <button type="button" class="rating-option" data-min-rating="3">★ 3 &amp; up</button>
+                    <button type="button" class="rating-option" data-min-rating="2">★ 2 &amp; up</button>
+                    <button type="button" class="rating-option" data-min-rating="1">★ 1 &amp; up</button>
+                </div>
+
+                <button type="button" id="clear-filters-btn" class="btn btn-secondary btn-sm" style="margin-top: 24px; width: 100%;">Clear Filters</button>
             </aside>
             
             <!-- Catalog Main Panel -->
@@ -62,6 +80,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
 
     <!-- Main JavaScript Logic -->
-    <script type="module" src="js/catalog.js"></script>
+    <script type="module" src="js/catalog.js?v=2"></script>
 </body>
 </html>
