@@ -31,9 +31,16 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService userDetailsService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
+
+    @Value("${app.ratelimit.auth.capacity:5}")
+    private int authRateLimitCapacity;
+
+    @Value("${app.ratelimit.auth.window-seconds:60}")
+    private long authRateLimitWindowSeconds;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -49,7 +56,6 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/send-otp", "/verify-otp").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reviews/**").permitAll()
@@ -74,6 +80,11 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
+            // Rate-limit abuse-prone auth endpoints before anything else processes them (§7).
+            .addFilterBefore(new AuthRateLimitFilter(
+                            new RateLimiterService(authRateLimitCapacity, authRateLimitWindowSeconds),
+                            objectMapper),
+                    UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
