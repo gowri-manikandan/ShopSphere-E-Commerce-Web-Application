@@ -361,8 +361,6 @@
         const verifiedCheckmarkContainer = document.getElementById('verified-checkmark-container');
         const otpBoxes = [1,2,3,4,5,6].map(i => document.getElementById('otp-' + i));
 
-        let countdownInterval = null;
-
         function validateEmailFormat(email) {
             return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
         }
@@ -485,8 +483,9 @@
         // ---------- Switch to OTP step ----------
         function goToOtpStep(email) {
             const otpSection = document.getElementById('otp-verify-section');
-            const regSection = document.getElementById('register-section');
+            const regSection = document.getElementById('register-flow-section');
 
+            document.getElementById('verify-email-display').textContent = email;
             regSection.style.opacity = '0';
             setTimeout(() => {
                 regSection.style.display = 'none';
@@ -497,7 +496,6 @@
                     startOtpTimer();
                 }, 50);
             }, 300);
-            document.getElementById('otp-email-display').textContent = email;
         }
 
         // ---------- OTP Timer ----------
@@ -505,37 +503,33 @@
         function startOtpTimer() {
             clearInterval(otpTimerInterval);
             let timeLeft = 60;
-            const timerVal = document.getElementById('otp-timer-val');
+            countdownTimer.style.display = 'inline';
             resendOtpBtn.style.display = 'none';
-            document.querySelector('.otp-timer-container').style.display = 'block';
-            timerVal.textContent = timeLeft;
+            countdownTimer.textContent = `Resend code in ${timeLeft}s`;
 
             otpTimerInterval = setInterval(() => {
                 timeLeft--;
-                timerVal.textContent = timeLeft;
+                countdownTimer.textContent = `Resend code in ${timeLeft}s`;
                 if (timeLeft <= 0) {
                     clearInterval(otpTimerInterval);
-                    document.querySelector('.otp-timer-container').style.display = 'none';
+                    countdownTimer.style.display = 'none';
                     resendOtpBtn.style.display = 'inline';
                 }
             }, 1000);
         }
 
         resendOtpBtn.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
             try {
-                const email = document.getElementById('otp-email-display').textContent;
-                resendOtpBtn.style.display = 'none';
-                resendSpinner.style.display = 'inline-block';
-                
+                resendOtpBtn.disabled = true;
                 await auth.resendOtp(email);
                 showToast('OTP resent successfully.', 'success');
-                startOtpTimer();
+                startOtpTimer(); // hides resend + restarts the countdown
             } catch (err) {
                 showToast(err.message || 'Failed to resend OTP.', 'error');
-                resendSpinner.style.display = 'none';
                 resendOtpBtn.style.display = 'inline';
             } finally {
-                resendSpinner.style.display = 'none';
+                resendOtpBtn.disabled = false;
             }
         });
 
@@ -572,7 +566,7 @@
 
                 const response = await auth.verify(email, otp); // marks verified + returns token (auto-login)
 
-                clearInterval(countdownInterval);
+                clearInterval(otpTimerInterval);
                 showToast('Email verified successfully!', 'success');
 
                 // Success animation, then redirect
