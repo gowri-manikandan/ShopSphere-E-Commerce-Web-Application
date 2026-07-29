@@ -23,21 +23,21 @@ function handleAuthFailure() {
 let refreshPromise = null;
 
 async function tryRefresh() {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) return false;
+    // The refresh token lives in an httpOnly cookie (§7) — not readable here. If there's no
+    // access token then there's no session to refresh, so skip the call.
+    if (!localStorage.getItem('token')) return false;
 
     if (!refreshPromise) {
         refreshPromise = fetch(`${API_BASE}/api/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken })
+            credentials: 'include' // browser attaches the refresh-token cookie
         })
         .then(async (res) => {
             if (!res.ok) return false;
             const data = await res.json();
             if (data && data.token) {
                 localStorage.setItem('token', data.token);
-                if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
                 if (data.name) localStorage.setItem('name', data.name);
                 if (data.email) localStorage.setItem('email', data.email);
                 if (data.role) localStorage.setItem('role', data.role);
@@ -65,7 +65,8 @@ async function request(method, path, body = null, isPublic = false, _retry = fal
 
     const options = {
         method,
-        headers
+        headers,
+        credentials: 'include' // carry the httpOnly refresh-token cookie on /api/auth/* calls (§7)
     };
 
     if (body) {

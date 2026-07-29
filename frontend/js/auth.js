@@ -4,7 +4,7 @@ export const auth = {
     _storeSession(response) {
         if (response && response.token) {
             localStorage.setItem('token', response.token);
-            if (response.refreshToken) localStorage.setItem('refreshToken', response.refreshToken);
+            // Refresh token is set by the server as an httpOnly cookie (§7) — never stored here.
             if (response.userId != null) localStorage.setItem('userId', String(response.userId));
             localStorage.setItem('name', response.name);
             localStorage.setItem('email', response.email);
@@ -80,13 +80,10 @@ export const auth = {
     },
 
     async logout() {
-        // Best-effort server-side revocation of the refresh token.
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
-            try { await api.post('/api/auth/logout', { refreshToken }, true); } catch (e) { /* ignore */ }
-        }
+        // Refresh token is in an httpOnly cookie; the browser sends it automatically
+        // (api uses credentials:'include') and the server revokes it + clears the cookie.
+        try { await api.post('/api/auth/logout', {}, true); } catch (e) { /* ignore */ }
         localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
         localStorage.removeItem('userId');
         localStorage.removeItem('name');
         localStorage.removeItem('email');

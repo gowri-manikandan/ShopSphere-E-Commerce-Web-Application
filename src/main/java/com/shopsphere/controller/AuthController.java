@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final com.shopsphere.security.RefreshCookieService refreshCookieService;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -23,12 +24,12 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+        return authResponseWithCookie(authService.login(request));
     }
 
     @PostMapping("/verify")
     public ResponseEntity<AuthResponse> verify(@Valid @RequestBody com.shopsphere.dto.OtpVerificationRequest request) {
-        return ResponseEntity.ok(authService.verifyOtp(request));
+        return authResponseWithCookie(authService.verifyOtp(request));
     }
 
     @PostMapping("/resend-otp")
@@ -68,17 +69,38 @@ public class AuthController {
 
     @PostMapping("/google")
     public ResponseEntity<AuthResponse> google(@Valid @RequestBody com.shopsphere.dto.GoogleSignInRequest request) {
-        return ResponseEntity.ok(authService.googleSignIn(request.getIdToken()));
+        return authResponseWithCookie(authService.googleSignIn(request.getIdToken()));
     }
 
+    // Refresh reads the token from the httpOnly cookie (not a body) and rotates it (§7).
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody com.shopsphere.dto.RefreshTokenRequest request) {
-        return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));
+    public ResponseEntity<AuthResponse> refresh(
+            @CookieValue(name = com.shopsphere.security.RefreshCookieService.COOKIE_NAME, required = false)
+            String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+        }
+        return authResponseWithCookie(authService.refresh(refreshToken));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<com.shopsphere.dto.ApiMessage> logout(@Valid @RequestBody com.shopsphere.dto.RefreshTokenRequest request) {
-        authService.logout(request.getRefreshToken());
-        return ResponseEntity.ok(new com.shopsphere.dto.ApiMessage("Logged out successfully"));
+    public ResponseEntity<com.shopsphere.dto.ApiMessage> logout(
+            @CookieValue(name = com.shopsphere.security.RefreshCookieService.COOKIE_NAME, required = false)
+            String refreshToken) {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            authService.logout(refreshToken);
+        }
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.SET_COOKIE, refreshCookieService.clear().toString())
+                .body(new com.shopsphere.dto.ApiMessage("Logged out successfully"));
+    }
+
+    // Move the refresh token out of the JSON body and into the httpOnly cookie (§7).
+    private ResponseEntity<AuthResponse> authResponseWithCookie(AuthResponse response) {
+        org.springframework.http.ResponseCookie cookie = refreshCookieService.create(response.getRefreshToken());
+        response.setRefreshToken(null); // never expose it in the response body
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(response);
     }
 }
