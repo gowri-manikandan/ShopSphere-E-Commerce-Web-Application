@@ -11,6 +11,7 @@ import com.shopsphere.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -26,10 +27,15 @@ public class NotificationService {
 
     /**
      * Persist a notification for a user and publish a {@link NotificationCreatedEvent} so the
-     * AFTER_COMMIT broadcaster pushes it live. Runs in its own transaction (callers are typically
-     * AFTER_COMMIT event listeners, so no ambient transaction exists).
+     * AFTER_COMMIT broadcaster pushes it live.
+     *
+     * <p>REQUIRES_NEW is essential: this is called from AFTER_COMMIT event listeners, where the
+     * original (already-committed) transaction is still bound to the thread. Plain REQUIRED would
+     * JOIN that completed transaction and the INSERT would never commit (silently lost). A new
+     * transaction commits independently, which also lets the {@link NotificationCreatedEvent}'s
+     * own AFTER_COMMIT broadcast fire.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void create(Long userId, String type, String title, String message, String link) {
         User userRef = userRepository.getReferenceById(userId); // FK proxy, no extra query
         Notification saved = notificationRepository.save(Notification.builder()
