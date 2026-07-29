@@ -78,12 +78,9 @@ document.addEventListener('DOMContentLoaded', () => {
         recentPage++; loadRecentOrders();
     });
 
-    // Global search
-    document.getElementById('global-search').addEventListener('input',
-        debounce(e => globalSearch(e.target.value), 300));
+    // Close the product-trend results dropdown when clicking outside it
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.admin-search-wrap')) {
-            document.getElementById('search-results').classList.add('hidden');
             document.getElementById('trend-results').classList.add('hidden');
         }
     });
@@ -343,32 +340,6 @@ async function exportSalesCsv() {
         URL.revokeObjectURL(url);
     } catch (err) {
         showToast('Could not export CSV.', 'error');
-    }
-}
-
-// ----- Global search -----
-async function globalSearch(q) {
-    const box = document.getElementById('search-results');
-    if (!q || q.trim().length < 2) { box.classList.add('hidden'); box.innerHTML = ''; return; }
-    try {
-        const r = await api.get(`/api/admin/search?q=${encodeURIComponent(q.trim())}&limit=5`);
-        const parts = [];
-        if (r.products.length) {
-            parts.push(`<div class="search-group-label">Products</div>`
-                + r.products.map(p => `<div class="search-hit">${esc(p.name)} — ${inr(p.price)} (stock ${p.stockQuantity})</div>`).join(''));
-        }
-        if (r.orders.length) {
-            parts.push(`<div class="search-group-label">Orders</div>`
-                + r.orders.map(o => `<div class="search-hit">#${o.orderId} — ${esc(o.customerName || '')} — ${o.status}</div>`).join(''));
-        }
-        if (r.customers.length) {
-            parts.push(`<div class="search-group-label">Customers</div>`
-                + r.customers.map(c => `<div class="search-hit">${esc(c.name)} — ${esc(c.email)}</div>`).join(''));
-        }
-        box.innerHTML = parts.length ? parts.join('') : `<div class="search-hit muted">No matches</div>`;
-        box.classList.remove('hidden');
-    } catch (err) {
-        box.classList.add('hidden');
     }
 }
 
