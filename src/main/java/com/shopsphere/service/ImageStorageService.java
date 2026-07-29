@@ -46,10 +46,11 @@ public class ImageStorageService {
         try {
             if (cloudinaryConfig.isConfigured()) {
                 try {
-                    // Fixed public_id per user so a new avatar overwrites the old; the returned
-                    // secure_url is versioned, so it cache-busts automatically.
+                    // No public_id -> Cloudinary auto-generates a unique one, so every upload is a
+                    // distinct asset. (This endpoint serves avatars AND product images; a fixed
+                    // per-user id would make each new upload overwrite the previous one.)
                     return cloudinaryClient.upload(file.getBytes(), file.getOriginalFilename(),
-                            file.getContentType(), "user_" + user.getId());
+                            file.getContentType(), null);
                 } catch (RuntimeException e) {
                     // Cloudinary unreachable (e.g. local HTTPS/PKIX block) or rejected the
                     // request — don't fail the upload; fall back to local disk and warn loudly

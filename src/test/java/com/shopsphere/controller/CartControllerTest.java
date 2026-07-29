@@ -38,7 +38,7 @@ class CartControllerTest {
         mvc.perform(post("/api/cart/add")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.quantity").exists());
+                .andExpect(jsonPath("$.data.fieldErrors.quantity").exists());
     }
 
     @Test
@@ -49,7 +49,7 @@ class CartControllerTest {
         mvc.perform(post("/api/cart/add")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.productId").exists());
+                .andExpect(jsonPath("$.data.fieldErrors.productId").exists());
     }
 
     @Test

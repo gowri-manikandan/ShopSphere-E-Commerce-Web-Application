@@ -709,6 +709,79 @@ header {
     border-bottom: 1px solid var(--border-color);
 }
 
+/* Wishlist heart (§13) — overlay on the product image */
+.wishlist-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    color: #94a3b8;
+    transition: transform var(--transition-fast), color var(--transition-fast);
+}
+.wishlist-btn svg { fill: none; stroke: currentColor; stroke-width: 2; }
+.wishlist-btn:hover { transform: scale(1.1); color: var(--danger); }
+.wishlist-btn.active { color: var(--danger); }
+.wishlist-btn.active svg { fill: currentColor; stroke: currentColor; }
+.wishlist-btn:disabled { opacity: 0.6; cursor: default; }
+
+/* Notification bell (§16) — mirrors the cart button/badge */
+.notif-btn {
+    position: relative;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.05);
+    transition: all var(--transition-fast);
+}
+.notif-btn:hover, .notif-btn.active { color: #ffffff; background-color: rgba(255, 255, 255, 0.1); }
+.notif-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: var(--danger);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    height: 18px;
+    min-width: 18px;
+    border-radius: 9px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+}
+
+/* Notifications page list (§16) */
+.notif-list { display: flex; flex-direction: column; gap: 10px; }
+.notif-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: #ffffff;
+    text-decoration: none;
+    color: inherit;
+}
+.notif-item.unread { border-left: 3px solid var(--primary); background: var(--primary-light, #eef2ff); }
+.notif-item-title { font-weight: 700; margin-bottom: 4px; }
+.notif-item-msg { color: var(--text-muted); font-size: 14px; }
+.notif-item-time { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+
 .product-card-img {
     position: absolute;
     top: 0;

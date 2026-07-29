@@ -387,8 +387,8 @@ function setupAvatarUpload() {
                 throw new Error(errData?.message || 'Failed to upload photo.');
             }
 
-            const data = await uploadResponse.json();
-            const fileUrl = data.url; // relative path: e.g. "uploads/xyz.jpg"
+            const body = await uploadResponse.json();
+            const fileUrl = (body.data || body).url; // unwrap ApiResponse (§8)
 
             // Prepend API_BASE if needed, or save it relative. Since the Python server serves static contents,
             // the relative URL "uploads/xyz.jpg" is correct and readable at http://localhost:5500/uploads/xyz.jpg.

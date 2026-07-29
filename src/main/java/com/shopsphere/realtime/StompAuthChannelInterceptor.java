@@ -28,7 +28,8 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
-    private static final Pattern ORDER_TOPIC = Pattern.compile("^/topic/orders/(\\d+)$");
+    // Per-user private topics: only the owner (or an admin) may subscribe.
+    private static final Pattern USER_TOPIC = Pattern.compile("^/topic/(?:orders|notifications)/(\\d+)$");
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
@@ -76,7 +77,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         if (destination == null) {
             return;
         }
-        Matcher m = ORDER_TOPIC.matcher(destination);
+        Matcher m = USER_TOPIC.matcher(destination);
         if (!m.matches()) {
             return; // /topic/stock/** and anything else broadcast-public
         }
@@ -85,7 +86,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             throw new AccessDeniedException("Authentication required for " + destination);
         }
         if (!principal.isAdmin() && !principal.userId().equals(requestedUserId)) {
-            throw new AccessDeniedException("Cannot subscribe to another user's order topic");
+            throw new AccessDeniedException("Cannot subscribe to another user's private topic");
         }
     }
 }

@@ -16,7 +16,7 @@ import java.util.Set;
 /**
  * Throttles abuse-prone auth endpoints (§7): login, register, and the OTP/password-reset
  * endpoints. Keyed by client IP + path so each endpoint has its own budget. Returns 429 with
- * the same JSON shape as {@code ErrorResponse} when the limit is exceeded.
+ * the ApiResponse error shape when the limit is exceeded.
  *
  * <p>Runs as a security filter (not a controller), so exceptions here wouldn't reach the
  * {@code @RestControllerAdvice} — it writes the 429 response directly.
@@ -65,12 +65,13 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
             throws IOException {
         response.setStatus(429); // 429 Too Many Requests (no Servlet constant for this)
         response.setContentType("application/json");
+        // Match the ApiResponse error envelope (§8) since this runs in the filter chain,
+        // before the @RestControllerAdvice handlers.
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", LocalDateTime.now().toString());
-        body.put("status", 429);
-        body.put("error", "Too Many Requests");
+        body.put("success", false);
         body.put("message", "Too many attempts. Please wait a minute and try again.");
-        body.put("path", request.getRequestURI());
+        body.put("errorCode", "RATE_LIMITED");
+        body.put("timestamp", LocalDateTime.now().toString());
         response.getWriter().write(objectMapper.writeValueAsString(body));
     }
 }

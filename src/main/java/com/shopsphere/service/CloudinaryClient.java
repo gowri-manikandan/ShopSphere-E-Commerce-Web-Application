@@ -47,19 +47,25 @@ public class CloudinaryClient {
     }
 
     /**
-     * Upload an image to Cloudinary and return its {@code secure_url}. Uses a fixed
-     * {@code public_id} per user so re-uploads overwrite the previous avatar; the returned URL
-     * is versioned, so it cache-busts automatically.
+     * Upload an image to Cloudinary and return its {@code secure_url}.
+     *
+     * <p>{@code publicId} is optional: when null/blank, Cloudinary auto-generates a unique id so
+     * every upload is a distinct asset (this endpoint serves both avatars and product images, so
+     * a fixed per-user id would make repeated uploads overwrite each other). Pass a specific id
+     * only when you deliberately want to overwrite.
      */
     public String upload(byte[] bytes, String filename, String contentType, String publicId) {
         long timestamp = System.currentTimeMillis() / 1000L;
 
-        // Params that participate in the signature (sorted). Omit blanks.
+        // Params that participate in the signature (sorted). Omit blanks — a blank public_id is
+        // left out entirely so Cloudinary assigns a fresh, unique one.
         TreeMap<String, String> signed = new TreeMap<>();
         if (config.getFolder() != null && !config.getFolder().isBlank()) {
             signed.put("folder", config.getFolder());
         }
-        signed.put("public_id", publicId);
+        if (publicId != null && !publicId.isBlank()) {
+            signed.put("public_id", publicId);
+        }
         signed.put("timestamp", String.valueOf(timestamp));
         String signature = sign(signed, config.getApiSecret());
 

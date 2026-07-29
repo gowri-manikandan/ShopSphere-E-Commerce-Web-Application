@@ -38,8 +38,8 @@ class SearchControllerTest {
 
         mvc.perform(get("/api/search/semantic").param("q", "phone"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].name").value("Smartphone X"));
+                .andExpect(jsonPath("$.data[0].id").value(1))
+                .andExpect(jsonPath("$.data[0].name").value("Smartphone X"));
     }
 
     @Test

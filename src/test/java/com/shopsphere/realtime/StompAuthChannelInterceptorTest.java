@@ -139,4 +139,28 @@ class StompAuthChannelInterceptorTest {
         assertThatCode(() -> interceptor.preSend(subscribeMessage("/topic/stock/7", null), channel))
                 .doesNotThrowAnyException();
     }
+
+    // ----- notifications topic (same owner/admin rule as orders) -----
+
+    @Test
+    void subscribe_ownNotificationsTopic_allowed() {
+        StompPrincipal me = new StompPrincipal("a@b.com", 42L, "CUSTOMER");
+
+        assertThatCode(() -> interceptor.preSend(subscribeMessage("/topic/notifications/42", me), channel))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void subscribe_otherUsersNotificationsTopic_denied() {
+        StompPrincipal me = new StompPrincipal("a@b.com", 42L, "CUSTOMER");
+
+        assertThatThrownBy(() -> interceptor.preSend(subscribeMessage("/topic/notifications/43", me), channel))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void subscribe_anonymousToNotificationsTopic_denied() {
+        assertThatThrownBy(() -> interceptor.preSend(subscribeMessage("/topic/notifications/42", null), channel))
+                .isInstanceOf(AccessDeniedException.class);
+    }
 }

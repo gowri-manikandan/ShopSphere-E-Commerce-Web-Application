@@ -1,5 +1,7 @@
 import { auth } from './auth.js';
 import { api } from './api.js';
+import { subscribeWhenConnected } from './realtime.js';
+import { showToast } from './ui.js';
 
 // Setup global hook for other scripts to refresh the cart badge count
 window.updateCartBadge = function(count) {
@@ -28,6 +30,46 @@ export async function refreshCartCount() {
     } catch (err) {
         console.error("Failed to fetch cart count:", err);
     }
+}
+
+// Unread-notifications badge (mirrors the cart badge) (§16)
+window.updateNotifBadge = function(count) {
+    const badge = document.querySelector('.notif-badge');
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'inline-flex';
+        } else {
+            badge.textContent = '0';
+            badge.style.display = 'none';
+        }
+    }
+};
+
+export async function refreshUnreadCount() {
+    if (!auth.isAuthenticated() || auth.isAdmin()) {
+        window.updateNotifBadge(0);
+        return;
+    }
+    try {
+        const res = await api.get('/api/notifications/unread-count');
+        window.updateNotifBadge(res?.count || 0);
+    } catch (err) {
+        /* non-fatal */
+    }
+}
+
+// Live-increment the bell when a notification is pushed (only where STOMP libs are loaded).
+async function subscribeToNotifications() {
+    if (!auth.isAuthenticated() || auth.isAdmin()) return;
+    const userId = await auth.getUserId();
+    if (!userId) return;
+    subscribeWhenConnected(`/topic/notifications/${userId}`, (msg) => {
+        const badge = document.querySelector('.notif-badge');
+        const current = badge ? (parseInt(badge.textContent, 10) || 0) : 0;
+        window.updateNotifBadge(current + 1);
+        try { showToast(msg.title || 'New notification', 'info'); } catch (e) { /* ignore */ }
+    });
 }
 
 // Render dynamic navbar
@@ -61,11 +103,21 @@ export function renderNavbar() {
                 <ul class="nav-links">
                     <li><a href="index.html" class="nav-link ${path === 'index.html' ? 'active' : ''}">Catalog</a></li>
                     ${isLoggedIn && !isAdmin ? `<li><a href="orders.html" class="nav-link ${path === 'orders.html' ? 'active' : ''}">My Orders</a></li>` : ''}
+                    ${isLoggedIn && !isAdmin ? `<li><a href="wishlist.html" class="nav-link ${path === 'wishlist.html' ? 'active' : ''}">Wishlist</a></li>` : ''}
                     ${isAdmin ? `<li><a href="admin-dashboard.html" class="nav-link ${path === 'admin-dashboard.html' ? 'active' : ''}">Dashboard</a></li>` : ''}
                     ${isAdmin ? `<li><a href="admin.html" class="nav-link ${path === 'admin.html' ? 'active' : ''}">Manage</a></li>` : ''}
                 </ul>
 
                 <div class="nav-actions">
+                    ${(isLoggedIn && !isAdmin) ? `
+                    <a href="notifications.html" class="notif-btn ${path === 'notifications.html' ? 'active' : ''}" aria-label="Notifications">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="22" height="22">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                        </svg>
+                        <span class="notif-badge">0</span>
+                    </a>
+                    ` : ''}
+
                     ${!isAdmin ? `
                     <a href="cart.html" class="cart-btn ${path === 'cart.html' ? 'active' : ''}" aria-label="Shopping cart">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="22" height="22">
@@ -143,8 +195,10 @@ export function renderNavbar() {
         });
     }
 
-    // Load initial cart count + real profile photo
+    // Load initial cart count + unread notifications + real profile photo
     refreshCartCount();
+    refreshUnreadCount();
+    subscribeToNotifications();
     refreshUserAvatar();
 
     // Render dynamic footer

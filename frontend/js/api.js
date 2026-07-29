@@ -35,7 +35,8 @@ async function tryRefresh() {
         })
         .then(async (res) => {
             if (!res.ok) return false;
-            const data = await res.json();
+            const body = await res.json();
+            const data = (body && body.data) ? body.data : body; // unwrap ApiResponse (§8)
             if (data && data.token) {
                 localStorage.setItem('token', data.token);
                 if (data.name) localStorage.setItem('name', data.name);
@@ -108,12 +109,21 @@ async function request(method, path, body = null, isPublic = false, _retry = fal
         }
 
         if (!response.ok) {
-            const errorObj = new Error(data?.message || 'Something went wrong.');
+            const errorObj = new Error((data && data.message) || 'Something went wrong.');
             errorObj.status = response.status;
-            errorObj.details = data; // stores {timestamp, status, error, message, path, fieldErrors}
+            errorObj.errorCode = data && data.errorCode;
+            // Flatten the ApiResponse error envelope so callers keep reading err.details.message
+            // AND err.details.fieldErrors (validation field errors live under data.data).
+            errorObj.details = (data && typeof data === 'object')
+                ? { ...data, ...(data.data || {}) }
+                : data;
             throw errorObj;
         }
 
+        // Unwrap the ApiResponse success envelope (§8) so callers receive the payload directly.
+        if (data && typeof data === 'object' && data.success === true && 'data' in data) {
+            return data.data;
+        }
         return data;
     } catch (err) {
         // If it was already thrown with details, rethrow

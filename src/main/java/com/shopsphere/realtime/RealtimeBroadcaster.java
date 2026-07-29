@@ -48,6 +48,13 @@ public class RealtimeBroadcaster {
         log.debug("Broadcast order status {} -> {}", event.orderId(), event.status());
     }
 
+    @Async("realtimeExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onNotificationCreated(NotificationCreatedEvent event) {
+        messagingTemplate.convertAndSend("/topic/notifications/" + event.userId(), event.payload());
+        log.debug("Broadcast notification to user {}", event.userId());
+    }
+
     private String stockStatus(int stock) {
         if (stock <= 0) {
             return StockUpdateMessage.OUT_OF_STOCK;

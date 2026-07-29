@@ -11,6 +11,7 @@ import com.shopsphere.repository.ProductRepository;
 import com.shopsphere.repository.ReviewRepository;
 import com.shopsphere.repository.CartItemRepository;
 import com.shopsphere.repository.OrderItemRepository;
+import com.shopsphere.repository.WishlistItemRepository;
 import com.shopsphere.realtime.StockChangedEvent;
 import com.shopsphere.search.ProductChangedEvent;
 import com.shopsphere.search.ProductDeletedEvent;
@@ -30,6 +31,7 @@ public class ProductService {
     private final ReviewRepository reviewRepository;
     private final CartItemRepository cartItemRepository;
     private final OrderItemRepository orderItemRepository;
+    private final WishlistItemRepository wishlistItemRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
@@ -109,6 +111,9 @@ public class ProductService {
 
         // Delete related reviews
         reviewRepository.deleteByProductId(id);
+
+        // Remove from any wishlists
+        wishlistItemRepository.deleteByProductId(id);
 
         // Disassociate related order items
         orderItemRepository.disassociateProduct(id);

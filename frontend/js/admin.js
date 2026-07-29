@@ -287,8 +287,8 @@ function openProductModal(product = null) {
                     const errData = await uploadResponse.json();
                     throw new Error(errData?.message || 'Failed to upload photo.');
                 }
-                const data = await uploadResponse.json();
-                const fileUrl = data.url; // relative path e.g. "uploads/xyz.jpg"
+                const body = await uploadResponse.json();
+                const fileUrl = (body.data || body).url; // unwrap ApiResponse (§8)
 
                 imgUrlInput.value = fileUrl;
                 previewImg.src = fileUrl;

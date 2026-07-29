@@ -23,6 +23,7 @@ let minPrice = null;       // client-side price filter (₹); null = no bound
 let maxPrice = null;
 let minRating = 0;         // client-side minimum-rating filter; 0 = any
 let loadedProducts = [];   // server result for current category/search, before price/rating filters
+let wishlistIds = new Set(); // product ids in the current user's wishlist (for heart states)
 let debounceTimeout = null;
 let stockSubscriptions = []; // live-stock handles for the currently rendered grid
 
@@ -34,7 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!productGrid || !searchInput) return;
 
     loadCategories();
-    loadProducts();
+    // Load wishlist heart states first (if logged-in customer) so the initial render is correct.
+    loadWishlistIds().finally(loadProducts);
     
     // Search listener (debounced)
     searchInput.addEventListener('input', (e) => {
@@ -253,6 +255,18 @@ export function renderStars(rating) {
     return `<div class="rating-stars">${starsHtml}</div>`;
 }
 
+// Fetch the current user's wishlisted product ids (logged-in customers only) for heart states.
+async function loadWishlistIds() {
+    wishlistIds = new Set();
+    if (!auth.isAuthenticated() || auth.isAdmin()) return;
+    try {
+        const ids = await api.get('/api/wishlist/ids');
+        wishlistIds = new Set(ids || []);
+    } catch (err) {
+        /* non-fatal: hearts just start empty */
+    }
+}
+
 // Generate single product card DOM element
 function renderProductCard(product) {
     const card = document.createElement('div');
@@ -269,6 +283,13 @@ function renderProductCard(product) {
     card.innerHTML = `
         <div class="product-card-img-wrapper">
             <img src="${imgUrl}" class="product-card-img" alt="${product.name}" loading="lazy" onerror="this.src='${fallbackImage}'">
+            ${(!isAdmin && auth.isAuthenticated()) ? `
+                <button class="wishlist-btn ${wishlistIds.has(product.id) ? 'active' : ''}" data-product-id="${product.id}" aria-label="Toggle wishlist" title="Wishlist">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                </button>
+            ` : ''}
             ${isOutOfStock ? `
                 <div class="out-of-stock-overlay">
                     <span class="out-of-stock-badge">Out of Stock</span>
@@ -337,6 +358,34 @@ function renderProductCard(product) {
                 if (!isOutOfStock) {
                     cartBtn.disabled = false;
                 }
+            }
+        });
+    }
+
+    // Wishlist heart toggle (logged-in customers).
+    const wishBtn = card.querySelector('.wishlist-btn');
+    if (wishBtn) {
+        wishBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const inList = wishlistIds.has(product.id);
+            wishBtn.disabled = true;
+            try {
+                if (inList) {
+                    await api.delete(`/api/wishlist/${product.id}`);
+                    wishlistIds.delete(product.id);
+                    wishBtn.classList.remove('active');
+                    showToast('Removed from wishlist', 'info');
+                } else {
+                    await api.post(`/api/wishlist/${product.id}`);
+                    wishlistIds.add(product.id);
+                    wishBtn.classList.add('active');
+                    showToast('Added to wishlist', 'success');
+                }
+            } catch (err) {
+                showToast(err.message || 'Could not update wishlist', 'error');
+            } finally {
+                wishBtn.disabled = false;
             }
         });
     }

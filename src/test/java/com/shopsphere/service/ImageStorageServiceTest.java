@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,18 +35,19 @@ class ImageStorageServiceTest {
     }
 
     @Test
-    void store_cloudinaryConfigured_delegatesToClient_withPerUserPublicId() {
+    void store_cloudinaryConfigured_delegatesToClient_withoutFixedPublicId() {
         when(cloudinaryConfig.isConfigured()).thenReturn(true);
-        when(cloudinaryClient.upload(any(), eq("avatar.png"), eq("image/png"), eq("user_5")))
-                .thenReturn("https://res.cloudinary.com/demo/image/upload/v1/shopsphere/avatars/user_5.png");
+        // publicId is null -> Cloudinary auto-generates a unique id (no overwrite between uploads).
+        when(cloudinaryClient.upload(any(), eq("avatar.png"), eq("image/png"), isNull()))
+                .thenReturn("https://res.cloudinary.com/demo/image/upload/v1/shopsphere/abc123.png");
 
         ImageStorageService service = new ImageStorageService(cloudinaryConfig, cloudinaryClient, "unused/");
 
         String url = service.store(image(), user);
 
         assertThat(url).isEqualTo(
-                "https://res.cloudinary.com/demo/image/upload/v1/shopsphere/avatars/user_5.png");
-        verify(cloudinaryClient).upload(any(), eq("avatar.png"), eq("image/png"), eq("user_5"));
+                "https://res.cloudinary.com/demo/image/upload/v1/shopsphere/abc123.png");
+        verify(cloudinaryClient).upload(any(), eq("avatar.png"), eq("image/png"), isNull());
     }
 
     @Test

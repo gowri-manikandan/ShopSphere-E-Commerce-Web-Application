@@ -59,9 +59,9 @@ class OrderControllerTest {
         mvc.perform(post("/api/orders/checkout")
                         .contentType(MediaType.APPLICATION_JSON).content(validBody()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.order.orderId").value(100))
-                .andExpect(jsonPath("$.order.status").value("PLACED"))
-                .andExpect(jsonPath("$.razorpayOrderId").value("order_test_123"));
+                .andExpect(jsonPath("$.data.order.orderId").value(100))
+                .andExpect(jsonPath("$.data.order.status").value("PLACED"))
+                .andExpect(jsonPath("$.data.razorpayOrderId").value("order_test_123"));
     }
 
     @Test
@@ -72,7 +72,7 @@ class OrderControllerTest {
         mvc.perform(post("/api/orders/checkout")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.addressId").exists());
+                .andExpect(jsonPath("$.data.fieldErrors.addressId").exists());
     }
 
     @Test
