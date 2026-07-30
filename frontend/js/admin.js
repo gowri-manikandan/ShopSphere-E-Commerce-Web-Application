@@ -493,6 +493,15 @@ async function loadAdminOrders() {
                 </select>
             `;
 
+            let actionButtonsHtml = `<button class="btn btn-primary btn-sm admin-shipping-btn" data-order-id="${order.orderId}">Shipping Info</button>`;
+            
+            if (order.paymentMethod === 'COD' && order.paymentStatus === 'PENDING') {
+                actionButtonsHtml += `
+                    <button class="btn btn-success btn-sm admin-cod-confirm-btn" data-order-id="${order.orderId}" style="margin-top:6px; margin-left: 6px;">Confirm COD</button>
+                    <button class="btn btn-danger btn-sm admin-cod-reject-btn" data-order-id="${order.orderId}" style="margin-top:6px; margin-left: 6px;">Reject COD</button>
+                `;
+            }
+
             tr.innerHTML = `
                 <td style="font-family:monospace; font-weight:700;">#${order.orderId}</td>
                 <td>${dateStr}</td>
@@ -506,7 +515,25 @@ async function loadAdminOrders() {
                     ${order.paymentStatus === 'SUCCESS' ? `<button class="btn btn-secondary btn-sm admin-refund-btn" data-order-id="${order.orderId}" style="margin-top:6px;">Refund</button>` : ''}
                 </td>
                 <td style="font-family:monospace; font-size:12px;">${order.transactionRef || 'N/A'}</td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        ${actionButtonsHtml}
+                    </div>
+                </td>
             `;
+
+            // Bind click handlers
+            tr.querySelector('.admin-shipping-btn').addEventListener('click', () => openShippingModal(order));
+            
+            const codConfirmBtn = tr.querySelector('.admin-cod-confirm-btn');
+            if (codConfirmBtn) {
+                codConfirmBtn.addEventListener('click', () => handleCodPayment(order, true));
+            }
+            
+            const codRejectBtn = tr.querySelector('.admin-cod-reject-btn');
+            if (codRejectBtn) {
+                codRejectBtn.addEventListener('click', () => handleCodPayment(order, false));
+            }
 
             // Refund handler (backend validates the payment is a refundable online capture)
             const refundBtn = tr.querySelector('.admin-refund-btn');
@@ -559,4 +586,116 @@ async function loadAdminOrders() {
     } finally {
         hideLoader();
     }
+}
+
+// Open modal to view and update shipping details
+function openShippingModal(order) {
+    const addr = order.shippingAddress || {};
+    const formHtml = `
+        <form id="shipping-modal-form" style="display:flex; flex-direction:column; gap:16px;">
+            <h4 style="margin: 0; font-size: 15px; color: var(--text-main); font-weight: 700; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Delivery Address</h4>
+            <div class="form-group">
+                <label for="ship-line1" class="form-label">Address Line 1</label>
+                <input type="text" id="ship-line1" class="form-control" value="${addr.line1 || ''}" placeholder="E.g., 12 Main St" required>
+            </div>
+            <div class="form-group" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                <div>
+                    <label for="ship-city" class="form-label">City</label>
+                    <input type="text" id="ship-city" class="form-control" value="${addr.city || ''}" placeholder="E.g., Mumbai" required>
+                </div>
+                <div>
+                    <label for="ship-state" class="form-label">State</label>
+                    <input type="text" id="ship-state" class="form-control" value="${addr.state || ''}" placeholder="E.g., Maharashtra" required>
+                </div>
+            </div>
+            <div class="form-group" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                <div>
+                    <label for="ship-pincode" class="form-label">Pin Code</label>
+                    <input type="text" id="ship-pincode" class="form-control" value="${addr.pincode || ''}" placeholder="E.g., 400001" required>
+                </div>
+                <div>
+                    <label for="ship-phone" class="form-label">Phone Number</label>
+                    <input type="text" id="ship-phone" class="form-control" value="${addr.phone || ''}" placeholder="E.g., 9876543210" required>
+                </div>
+            </div>
+            <h4 style="margin: 12px 0 0 0; font-size: 15px; color: var(--text-main); font-weight: 700; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Tracking & Courier Details</h4>
+            <div class="form-group" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                <div>
+                    <label for="ship-courier" class="form-label">Courier Partner</label>
+                    <input type="text" id="ship-courier" class="form-control" value="${order.courierPartner || ''}" placeholder="E.g., Blue Dart, DHL">
+                </div>
+                <div>
+                    <label for="ship-tracking" class="form-label">Tracking Number</label>
+                    <input type="text" id="ship-tracking" class="form-control" value="${order.trackingNumber || ''}" placeholder="E.g., BD123456789">
+                </div>
+            </div>
+        </form>
+    `;
+
+    showModal({
+        title: `Edit Shipping & Tracking — Order #${order.orderId}`,
+        contentHtml: formHtml,
+        confirmText: 'Save Shipping Details',
+        cancelText: 'Cancel',
+        onConfirm: async (modalEl) => {
+            const line1 = modalEl.querySelector('#ship-line1').value.trim();
+            const city = modalEl.querySelector('#ship-city').value.trim();
+            const state = modalEl.querySelector('#ship-state').value.trim();
+            const pincode = modalEl.querySelector('#ship-pincode').value.trim();
+            const phone = modalEl.querySelector('#ship-phone').value.trim();
+            const courierPartner = modalEl.querySelector('#ship-courier').value.trim();
+            const trackingNumber = modalEl.querySelector('#ship-tracking').value.trim();
+
+            if (!line1 || !city || !state || !pincode || !phone) {
+                showToast('All delivery address fields are required.', 'error');
+                return false;
+            }
+
+            try {
+                showLoader();
+                await api.put(`/api/admin/orders/${order.orderId}/shipping`, {
+                    line1,
+                    city,
+                    state,
+                    pincode,
+                    phone,
+                    courierPartner: courierPartner || null,
+                    trackingNumber: trackingNumber || null
+                });
+                showToast(`Shipping details updated for Order #${order.orderId}.`, 'success');
+                loadAdminOrders();
+                return true;
+            } catch (err) {
+                showToast(err.message || 'Failed to update shipping details.', 'error');
+                return false;
+            } finally {
+                hideLoader();
+            }
+        }
+    });
+}
+
+// Confirm or Reject COD payment status
+function handleCodPayment(order, received) {
+    const title = received ? 'Confirm COD Payment' : 'Reject COD Order';
+    const msg = received 
+        ? `Are you sure you want to confirm cash received for Order #${order.orderId}? This sets payment to SUCCESS and order status to DELIVERED.`
+        : `Are you sure you want to reject Cash on Delivery payment for Order #${order.orderId}? This sets payment status to FAILED, cancels the order, and restores product stock.`;
+
+    showConfirm(
+        title,
+        msg,
+        async () => {
+            try {
+                showLoader();
+                await api.put(`/api/admin/orders/${order.orderId}/cod-payment?received=${received}`);
+                showToast(`COD payment status updated for Order #${order.orderId}.`, 'success');
+                loadAdminOrders();
+            } catch (err) {
+                showToast(err.message || 'Failed to update COD payment status.', 'error');
+            } finally {
+                hideLoader();
+            }
+        }
+    );
 }

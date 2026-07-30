@@ -22,6 +22,8 @@ public class OrderResponse {
     private String paymentMethod;
     private String paymentStatus;
     private String transactionRef;
+    private String courierPartner;
+    private String trackingNumber;
     private ShippingAddress shippingAddress;
 
     @Data

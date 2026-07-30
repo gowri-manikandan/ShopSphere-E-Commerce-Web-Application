@@ -293,6 +293,73 @@ public class OrderService {
         throw conflict; // handled centrally -> 409 CONFLICT
     }
 
+    @Transactional
+    public OrderResponse updateShippingInfo(Long orderId, String line1, String city, String state, String pincode, String phone, String courierPartner, String trackingNumber) {
+        Order order = findOrder(orderId);
+        Address address = order.getAddress();
+        if (address == null) {
+            address = Address.builder()
+                    .user(order.getUser())
+                    .line1(line1)
+                    .city(city)
+                    .state(state)
+                    .pincode(pincode)
+                    .phone(phone)
+                    .build();
+        } else {
+            address.setLine1(line1);
+            address.setCity(city);
+            address.setState(state);
+            address.setPincode(pincode);
+            address.setPhone(phone);
+        }
+        addressRepository.save(address);
+        order.setAddress(address);
+
+        order.setCourierPartner(courierPartner);
+        order.setTrackingNumber(trackingNumber);
+
+        Order saved = orderRepository.save(order);
+        return OrderMapper.toResponse(saved);
+    }
+
+    @Transactional
+    public OrderResponse updateCodPaymentStatus(Long orderId, boolean received) {
+        Order order = findOrder(orderId);
+        Payment payment = order.getPayment();
+        if (payment == null) {
+            throw new BadRequestException("No payment found for this order");
+        }
+        if (payment.getMethod() != PaymentMethod.COD) {
+            throw new BadRequestException("This method is only for COD orders");
+        }
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            throw new BadRequestException("COD payment is not in PENDING state");
+        }
+
+        if (received) {
+            payment.setStatus(PaymentStatus.SUCCESS);
+            payment.setPaidAt(LocalDateTime.now());
+            order.setStatus(OrderStatus.DELIVERED); // Mark as delivered upon receiving cash
+        } else {
+            payment.setStatus(PaymentStatus.FAILED);
+            order.setStatus(OrderStatus.CANCELLED); // Cancel order since payment failed
+            // Restore stock
+            for (OrderItem item : order.getItems()) {
+                Product product = item.getProduct();
+                if (product != null) {
+                    product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+                    productRepository.save(product);
+                    eventPublisher.publishEvent(new StockChangedEvent(product.getId()));
+                }
+            }
+        }
+        Order saved = orderRepository.save(order);
+        eventPublisher.publishEvent(new OrderStatusChangedEvent(
+                saved.getId(), saved.getUser().getId(), order.getStatus().name(), LocalDateTime.now()));
+        return OrderMapper.toResponse(saved);
+    }
+
     private Order findOrder(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));

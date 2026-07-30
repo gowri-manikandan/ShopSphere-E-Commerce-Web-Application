@@ -10,6 +10,7 @@ let topSort = 'units';
 let recentPage = 0;
 const RECENT_SIZE = 10;
 let selectedTrendProductId = null;
+let selectedCategoryId = '';
 
 // ----- helpers -----
 function toMonthValue(d) {
@@ -52,6 +53,17 @@ document.addEventListener('DOMContentLoaded', () => {
         loadTopProducts();
     });
 
+    const categoryFilter = document.getElementById('category-filter');
+    categoryFilter.addEventListener('change', () => {
+        selectedCategoryId = categoryFilter.value;
+        loadOverview();
+        loadSalesReport();
+        loadTopProducts();
+        loadRecentOrders();
+    });
+
+    populateCategoryFilter();
+
     // Top-products sort toggle
     document.getElementById('top-sort-toggle').addEventListener('click', (e) => {
         const btn = e.target.closest('.admin-toggle-btn');
@@ -63,8 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
         loadTopProducts();
     });
 
-    // CSV export
+    // CSV/PDF export
     document.getElementById('export-csv-btn').addEventListener('click', exportSalesCsv);
+    document.getElementById('export-pdf-btn').addEventListener('click', exportSalesPdf);
 
     // Recent orders filter + pagination
     document.getElementById('recent-status-filter').addEventListener('change', () => {
@@ -106,11 +119,29 @@ document.addEventListener('DOMContentLoaded', () => {
     loadRecentOrders();
 });
 
+async function populateCategoryFilter() {
+    try {
+        const categories = await api.get('/api/categories', true);
+        const filter = document.getElementById('category-filter');
+        if (filter && categories) {
+            categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.textContent = cat.name;
+                filter.appendChild(opt);
+            });
+        }
+    } catch (err) {
+        showToast('Failed to load categories for filtering.', 'error');
+    }
+}
+
 // ----- Overview -----
 async function loadOverview() {
     try {
         const [from, to] = monthRange(currentMonth);
-        const o = await api.get(`/api/admin/analytics/overview?from=${from}&to=${to}`);
+        const categoryQuery = selectedCategoryId ? `&categoryId=${selectedCategoryId}` : '';
+        const o = await api.get(`/api/admin/analytics/overview?from=${from}&to=${to}${categoryQuery}`);
         document.getElementById('ov-alltime-revenue').textContent = inr(o.allTimeRevenue);
         document.getElementById('ov-period-revenue').textContent = inr(o.periodRevenue);
         document.getElementById('ov-period-orders').textContent = o.periodOrders ?? 0;
@@ -134,7 +165,8 @@ async function loadSalesReport() {
     const state = document.getElementById('sales-state');
     setState(state, 'Loading…');
     try {
-        const r = await api.get(`/api/admin/analytics/sales-report?month=${currentMonth}`);
+        const categoryQuery = selectedCategoryId ? `&categoryId=${selectedCategoryId}` : '';
+        const r = await api.get(`/api/admin/analytics/sales-report?month=${currentMonth}${categoryQuery}`);
         // Comparison badge
         const badge = document.getElementById('sales-comparison');
         if (r.revenueChangePct == null) {
@@ -184,8 +216,9 @@ async function loadTopProducts() {
     setState(state, 'Loading…');
     tbody.innerHTML = '';
     try {
+        const categoryQuery = selectedCategoryId ? `&categoryId=${selectedCategoryId}` : '';
         const rows = await api.get(
-            `/api/admin/analytics/top-products?month=${currentMonth}&limit=10&sortBy=${topSort}`);
+            `/api/admin/analytics/top-products?month=${currentMonth}&limit=10&sortBy=${topSort}${categoryQuery}`);
         if (!rows.length) {
             setState(state, 'No product sales this month.');
             if (charts.top) charts.top.destroy();
@@ -235,7 +268,8 @@ async function loadProductTrend(productId) {
     const state = document.getElementById('trend-state');
     setState(state, 'Loading…');
     try {
-        const r = await api.get(`/api/admin/analytics/product-trend?productId=${productId}&months=12`);
+        const categoryQuery = selectedCategoryId ? `&categoryId=${selectedCategoryId}` : '';
+        const r = await api.get(`/api/admin/analytics/product-trend?productId=${productId}&months=12${categoryQuery}`);
         document.getElementById('trend-summary').innerHTML =
             `<strong>${esc(r.productName)}</strong> — ${r.totalUnits} units, ${inr(r.totalRevenue)} over 12 months`;
         const hasData = r.points.some(p => p.units > 0);
@@ -299,8 +333,9 @@ async function loadRecentOrders() {
     const status = document.getElementById('recent-status-filter').value;
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Loading…</td></tr>`;
     try {
+        const categoryQuery = selectedCategoryId ? `&categoryId=${selectedCategoryId}` : '';
         const r = await api.get(
-            `/api/admin/analytics/recent-orders?page=${recentPage}&size=${RECENT_SIZE}&status=${status}`);
+            `/api/admin/analytics/recent-orders?page=${recentPage}&size=${RECENT_SIZE}&status=${status}${categoryQuery}`);
         if (!r.content.length) {
             tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No orders.</td></tr>`;
         } else {
@@ -325,21 +360,47 @@ async function loadRecentOrders() {
 async function exportSalesCsv() {
     try {
         const token = localStorage.getItem('token');
+        const categoryQuery = selectedCategoryId ? `&categoryId=${selectedCategoryId}` : '';
         const res = await fetch(
-            `${API_BASE}/api/admin/analytics/sales-report/export?month=${currentMonth}`,
+            `${API_BASE}/api/admin/analytics/sales-report/export?month=${currentMonth}${categoryQuery}`,
             { headers: { Authorization: `Bearer ${token}` } });
         if (!res.ok) throw new Error('Export failed');
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sales-report-${currentMonth}.csv`;
+        const catStr = selectedCategoryId ? `-cat-${selectedCategoryId}` : '';
+        a.download = `sales-report-${currentMonth}${catStr}.csv`;
         document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
     } catch (err) {
         showToast('Could not export CSV.', 'error');
+    }
+}
+
+// ----- PDF export (raw fetch to preserve the attachment + auth header) -----
+async function exportSalesPdf() {
+    try {
+        const token = localStorage.getItem('token');
+        const categoryQuery = selectedCategoryId ? `&categoryId=${selectedCategoryId}` : '';
+        const res = await fetch(
+            `${API_BASE}/api/admin/analytics/sales-report/export-pdf?month=${currentMonth}${categoryQuery}`,
+            { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) throw new Error('Export failed');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const catStr = selectedCategoryId ? `-cat-${selectedCategoryId}` : '';
+        a.download = `sales-report-${currentMonth}${catStr}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        showToast('Could not export PDF.', 'error');
     }
 }
 

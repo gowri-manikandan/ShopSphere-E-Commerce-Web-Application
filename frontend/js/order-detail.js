@@ -157,8 +157,8 @@ function render(o) {
                 <section class="od-card">
                     <h3 class="od-card-title">Shipping Information</h3>
                     <div class="od-info-rows">
-                        <div><span>Courier Partner</span><span class="od-muted">Assigned on dispatch</span></div>
-                        <div><span>Tracking Number</span><span class="od-muted">Not yet available</span></div>
+                        <div><span>Courier Partner</span><span>${esc(o.courierPartner) || '<span class="od-muted">Assigned on dispatch</span>'}</span></div>
+                        <div><span>Tracking Number</span><span>${esc(o.trackingNumber) || '<span class="od-muted">Not yet available</span>'}</span></div>
                         <div><span>Estimated Delivery</span><span>${o.status === 'DELIVERED' ? 'Delivered' : fmtDate(estDelivery)}</span></div>
                     </div>
                 </section>

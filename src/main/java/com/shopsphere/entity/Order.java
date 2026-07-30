@@ -43,6 +43,12 @@ public class Order {
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private Payment payment;
 
+    @Column(name = "courier_partner", length = 100)
+    private String courierPartner;
+
+    @Column(name = "tracking_number", length = 100)
+    private String trackingNumber;
+
     @Column(name = "order_date", updatable = false)
     private LocalDateTime orderDate;
 

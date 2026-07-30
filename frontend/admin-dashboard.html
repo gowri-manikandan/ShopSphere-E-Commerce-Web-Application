@@ -41,6 +41,12 @@
                         <span>Month</span>
                         <input type="month" id="month-picker" class="form-control">
                     </label>
+                    <label class="admin-month-filter" style="margin-left: 16px;">
+                        <span>Category</span>
+                        <select id="category-filter" class="form-control" style="height: 42px; min-width: 150px;">
+                            <option value="">All Categories</option>
+                        </select>
+                    </label>
                 </div>
             </div>
 
@@ -77,6 +83,7 @@
                         <span id="sales-comparison" class="badge badge-info" style="margin-left:8px;"></span>
                     </h3>
                     <button class="btn btn-secondary btn-sm" id="export-csv-btn">Export CSV</button>
+                    <button class="btn btn-secondary btn-sm" id="export-pdf-btn" style="margin-left:8px;">Export PDF</button>
                 </div>
                 <div class="chart-card">
                     <div class="chart-state" id="sales-state">Loading…</div>

@@ -55,4 +55,59 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     List<Object[]> productMonthlyTrend(@Param("productId") Long productId,
                                        @Param("start") LocalDateTime start,
                                        @Param("end") LocalDateTime end);
+
+    @Query("SELECT COALESCE(SUM(oi.price * oi.quantity), 0) FROM OrderItem oi "
+            + "WHERE oi.order.status <> com.shopsphere.entity.OrderStatus.CANCELLED "
+            + "AND oi.product.category.id = :categoryId")
+    java.math.BigDecimal calculateTotalRevenueByCategoryId(@Param("categoryId") Long categoryId);
+
+    @Query("SELECT COALESCE(SUM(oi.price * oi.quantity), 0) FROM OrderItem oi "
+            + "WHERE oi.order.status <> com.shopsphere.entity.OrderStatus.CANCELLED "
+            + "AND oi.order.orderDate BETWEEN :start AND :end "
+            + "AND oi.product.category.id = :categoryId")
+    java.math.BigDecimal revenueBetweenByCategoryId(@Param("start") LocalDateTime start,
+                                                    @Param("end") LocalDateTime end,
+                                                    @Param("categoryId") Long categoryId);
+
+    @Query("SELECT COUNT(DISTINCT oi.order.id) FROM OrderItem oi "
+            + "WHERE oi.order.status <> com.shopsphere.entity.OrderStatus.CANCELLED "
+            + "AND oi.order.orderDate BETWEEN :start AND :end "
+            + "AND oi.product.category.id = :categoryId")
+    long countOrdersBetweenByCategoryId(@Param("start") LocalDateTime start,
+                                        @Param("end") LocalDateTime end,
+                                        @Param("categoryId") Long categoryId);
+
+    @Query("SELECT FUNCTION('DATE', oi.order.orderDate), SUM(oi.price * oi.quantity), COUNT(DISTINCT oi.order.id) "
+            + "FROM OrderItem oi "
+            + "WHERE oi.order.status <> com.shopsphere.entity.OrderStatus.CANCELLED "
+            + "AND oi.order.orderDate BETWEEN :start AND :end "
+            + "AND oi.product.category.id = :categoryId "
+            + "GROUP BY FUNCTION('DATE', oi.order.orderDate)")
+    List<Object[]> dailySalesBetweenByCategoryId(@Param("start") LocalDateTime start,
+                                                  @Param("end") LocalDateTime end,
+                                                  @Param("categoryId") Long categoryId);
+
+    @Query("SELECT oi.product.id, oi.product.name, SUM(oi.quantity), SUM(oi.price * oi.quantity) "
+            + "FROM OrderItem oi "
+            + "WHERE oi.order.status <> com.shopsphere.entity.OrderStatus.CANCELLED "
+            + "AND oi.product IS NOT NULL "
+            + "AND oi.product.category.id = :categoryId "
+            + "AND oi.order.orderDate BETWEEN :start AND :end "
+            + "GROUP BY oi.product.id, oi.product.name "
+            + "ORDER BY SUM(oi.quantity) DESC")
+    List<Object[]> topProductsByUnitsAndCategoryId(@Param("start") LocalDateTime start,
+                                                   @Param("end") LocalDateTime end,
+                                                   @Param("categoryId") Long categoryId, Pageable pageable);
+
+    @Query("SELECT oi.product.id, oi.product.name, SUM(oi.quantity), SUM(oi.price * oi.quantity) "
+            + "FROM OrderItem oi "
+            + "WHERE oi.order.status <> com.shopsphere.entity.OrderStatus.CANCELLED "
+            + "AND oi.product IS NOT NULL "
+            + "AND oi.product.category.id = :categoryId "
+            + "AND oi.order.orderDate BETWEEN :start AND :end "
+            + "GROUP BY oi.product.id, oi.product.name "
+            + "ORDER BY SUM(oi.price * oi.quantity) DESC")
+    List<Object[]> topProductsByRevenueAndCategoryId(@Param("start") LocalDateTime start,
+                                                     @Param("end") LocalDateTime end,
+                                                     @Param("categoryId") Long categoryId, Pageable pageable);
 }

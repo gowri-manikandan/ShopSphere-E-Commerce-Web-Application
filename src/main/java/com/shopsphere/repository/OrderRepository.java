@@ -43,6 +43,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // Recent-orders table (paginated). Sort/newest-first supplied via Pageable.
     Page<Order> findByStatus(OrderStatus status, Pageable pageable);
 
+    Page<Order> findDistinctByItemsProductCategoryId(Long categoryId, Pageable pageable);
+
+    Page<Order> findDistinctByStatusAndItemsProductCategoryId(OrderStatus status, Long categoryId, Pageable pageable);
+
     // Global search: orders by customer name.
     List<Order> findByUserNameContainingIgnoreCase(String name, Pageable pageable);
 }

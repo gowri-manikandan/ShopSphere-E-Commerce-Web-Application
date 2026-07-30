@@ -10,9 +10,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 @RestController
 @RequestMapping("/api/admin/orders")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminOrderController {
 
     private final OrderService orderService;
@@ -36,5 +39,28 @@ public class AdminOrderController {
     public ResponseEntity<ApiMessage> refund(@PathVariable Long id) {
         paymentService.refund(id);
         return ResponseEntity.ok(new ApiMessage("Order refunded and cancelled"));
+    }
+
+    // Admin: update shipping & tracking info
+    @PutMapping("/{id}/shipping")
+    public ResponseEntity<OrderResponse> updateShippingInfo(@PathVariable Long id,
+                                                            @RequestBody com.shopsphere.dto.ShippingInfoRequest request) {
+        return ResponseEntity.ok(orderService.updateShippingInfo(
+                id,
+                request.getLine1(),
+                request.getCity(),
+                request.getState(),
+                request.getPincode(),
+                request.getPhone(),
+                request.getCourierPartner(),
+                request.getTrackingNumber()
+        ));
+    }
+
+    // Admin: update COD payment status (received or not)
+    @PutMapping("/{id}/cod-payment")
+    public ResponseEntity<OrderResponse> updateCodPaymentStatus(@PathVariable Long id,
+                                                                @RequestParam boolean received) {
+        return ResponseEntity.ok(orderService.updateCodPaymentStatus(id, received));
     }
 }

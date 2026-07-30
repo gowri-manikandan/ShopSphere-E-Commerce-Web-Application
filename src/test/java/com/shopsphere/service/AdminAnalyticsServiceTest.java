@@ -6,6 +6,7 @@ import com.shopsphere.repository.OrderItemRepository;
 import com.shopsphere.repository.OrderRepository;
 import com.shopsphere.repository.ProductRepository;
 import com.shopsphere.repository.UserRepository;
+import com.shopsphere.repository.CategoryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,13 +45,14 @@ class AdminAnalyticsServiceTest {
     @Mock OrderItemRepository orderItemRepository;
     @Mock ProductRepository productRepository;
     @Mock UserRepository userRepository;
+    @Mock CategoryRepository categoryRepository;
 
     AdminAnalyticsService service;
 
     @BeforeEach
     void setUp() {
         service = new AdminAnalyticsService(orderRepository, orderItemRepository,
-                productRepository, userRepository, 5);
+                productRepository, userRepository, categoryRepository, 5);
     }
 
     // ----- overview -----
@@ -215,5 +217,92 @@ class AdminAnalyticsServiceTest {
         assertThat(csv).startsWith("date,revenue,orders\n");
         assertThat(csv).contains("2026-03-01,200.00,2\n");
         assertThat(csv).contains("TOTAL,300.00,3\n");
+    }
+
+    // ----- Category Filtering Tests -----
+
+    @Test
+    void overview_withCategoryId_callsCategorySpecificQueries() {
+        when(orderItemRepository.calculateTotalRevenueByCategoryId(1L)).thenReturn(new BigDecimal("500.00"));
+        when(orderItemRepository.revenueBetweenByCategoryId(any(), any(), eq(1L))).thenReturn(new BigDecimal("200.00"));
+        when(orderItemRepository.countOrdersBetweenByCategoryId(any(), any(), eq(1L))).thenReturn(2L);
+        when(userRepository.countByRole(Role.CUSTOMER)).thenReturn(10L);
+
+        OverviewResponse r = service.getOverview(LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 31), 1L);
+
+        assertThat(r.getAllTimeRevenue()).isEqualByComparingTo("500.00");
+        assertThat(r.getPeriodRevenue()).isEqualByComparingTo("200.00");
+        assertThat(r.getPeriodOrders()).isEqualTo(2);
+        assertThat(r.getAverageOrderValue()).isEqualByComparingTo("100.00");
+        verify(orderItemRepository).calculateTotalRevenueByCategoryId(1L);
+        verify(orderItemRepository).revenueBetweenByCategoryId(any(), any(), eq(1L));
+        verify(orderItemRepository).countOrdersBetweenByCategoryId(any(), any(), eq(1L));
+    }
+
+    @Test
+    void salesReport_withCategoryId_callsCategorySpecificQueries() {
+        List<Object[]> rows = new ArrayList<>();
+        rows.add(new Object[]{Date.valueOf(LocalDate.of(2026, 3, 5)), new BigDecimal("200.00"), 2L});
+        when(orderItemRepository.dailySalesBetweenByCategoryId(any(), any(), eq(1L))).thenReturn(rows);
+        when(orderItemRepository.revenueBetweenByCategoryId(any(), any(), eq(1L)))
+                .thenReturn(new BigDecimal("200.00"))  // current
+                .thenReturn(new BigDecimal("100.00")); // prev
+        when(orderItemRepository.countOrdersBetweenByCategoryId(any(), any(), eq(1L))).thenReturn(2L);
+
+        SalesReportResponse r = service.getSalesReport("2026-03", 1L);
+
+        assertThat(r.getTotalRevenue()).isEqualByComparingTo("200.00");
+        assertThat(r.getOrderCount()).isEqualTo(2);
+        assertThat(r.getRevenueChangePct()).isEqualTo(100.0);
+        verify(orderItemRepository).dailySalesBetweenByCategoryId(any(), any(), eq(1L));
+    }
+
+    @Test
+    void topProducts_withCategoryId_callsCategorySpecificQueries() {
+        List<Object[]> rows = new ArrayList<>();
+        rows.add(new Object[]{10L, "Widget", 5L, new BigDecimal("500.00")});
+        when(orderItemRepository.topProductsByUnitsAndCategoryId(any(), any(), eq(1L), any())).thenReturn(rows);
+
+        List<TopProductResponse> r = service.getTopProducts("2026-03", 10, "units", 1L);
+
+        assertThat(r).hasSize(1);
+        assertThat(r.get(0).getProductId()).isEqualTo(10L);
+        verify(orderItemRepository).topProductsByUnitsAndCategoryId(any(), any(), eq(1L), any());
+    }
+
+    @Test
+    void recentOrders_withCategoryId_callsCategorySpecificQueries() {
+        User u = User.builder().id(1L).name("A").email("a@x.com").build();
+        Order o = Order.builder().id(100L).user(u).status(OrderStatus.PLACED)
+                .totalAmount(new BigDecimal("50.00")).items(new ArrayList<>())
+                .orderDate(LocalDateTime.now()).build();
+        Page<Order> pg = new PageImpl<>(List.of(o), PageRequest.of(0, 10), 1);
+        when(orderRepository.findDistinctByItemsProductCategoryId(eq(1L), any(Pageable.class))).thenReturn(pg);
+
+        PagedResponse<OrderResponse> r = service.getRecentOrders(0, 10, null, 1L);
+
+        assertThat(r.getTotalElements()).isEqualTo(1);
+        verify(orderRepository).findDistinctByItemsProductCategoryId(eq(1L), any(Pageable.class));
+    }
+
+    @Test
+    void generatePdf_generatesPdfByteArray() {
+        Category cat = new Category();
+        cat.setId(1L);
+        cat.setName("Electronics");
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(cat));
+
+        when(orderItemRepository.revenueBetweenByCategoryId(any(), any(), eq(1L))).thenReturn(new BigDecimal("200.00"));
+        when(orderItemRepository.countOrdersBetweenByCategoryId(any(), any(), eq(1L))).thenReturn(2L);
+        when(orderItemRepository.topProductsByUnitsAndCategoryId(any(), any(), eq(1L), any())).thenReturn(new ArrayList<>());
+        when(orderItemRepository.dailySalesBetweenByCategoryId(any(), any(), eq(1L))).thenReturn(new ArrayList<>());
+
+        byte[] pdf = service.generateAnalyticsPdf("2026-03", 1L);
+
+        assertThat(pdf).isNotEmpty();
+        String pdfStr = new String(pdf, java.nio.charset.StandardCharsets.ISO_8859_1);
+        assertThat(pdfStr).startsWith("%PDF-1.4");
+        assertThat(pdfStr).contains("%%EOF");
+        assertThat(pdfStr).contains("Filtered by Category: Electronics");
     }
 }

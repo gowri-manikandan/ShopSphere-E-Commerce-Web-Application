@@ -27,6 +27,8 @@ public class OrderMapper {
                 .paymentMethod(payment != null ? payment.getMethod().name() : null)
                 .paymentStatus(payment != null ? payment.getStatus().name() : null)
                 .transactionRef(payment != null ? payment.getTransactionRef() : null)
+                .courierPartner(order.getCourierPartner())
+                .trackingNumber(order.getTrackingNumber())
                 .shippingAddress(toShippingAddress(order))
                 .build();
     }
