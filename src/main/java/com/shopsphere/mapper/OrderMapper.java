@@ -2,6 +2,7 @@ package com.shopsphere.mapper;
 
 import com.shopsphere.dto.OrderItemResponse;
 import com.shopsphere.dto.OrderResponse;
+import com.shopsphere.entity.Address;
 import com.shopsphere.entity.Order;
 import com.shopsphere.entity.OrderItem;
 import com.shopsphere.entity.Payment;
@@ -26,6 +27,22 @@ public class OrderMapper {
                 .paymentMethod(payment != null ? payment.getMethod().name() : null)
                 .paymentStatus(payment != null ? payment.getStatus().name() : null)
                 .transactionRef(payment != null ? payment.getTransactionRef() : null)
+                .shippingAddress(toShippingAddress(order))
+                .build();
+    }
+
+    private static OrderResponse.ShippingAddress toShippingAddress(Order order) {
+        Address addr = order.getAddress();
+        if (addr == null) {
+            return null;
+        }
+        return OrderResponse.ShippingAddress.builder()
+                .name(order.getUser() != null ? order.getUser().getName() : null)
+                .line1(addr.getLine1())
+                .city(addr.getCity())
+                .state(addr.getState())
+                .pincode(addr.getPincode())
+                .phone(addr.getPhone())
                 .build();
     }
 

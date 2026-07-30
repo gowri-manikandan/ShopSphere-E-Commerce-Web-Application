@@ -114,7 +114,7 @@ export const auth = {
         const path = window.location.pathname.split('/').pop() || 'index.html';
         const user = this.getUser();
 
-        const protectedPages = ['cart.html', 'checkout.html', 'orders.html', 'admin.html', 'admin-dashboard.html', 'wishlist.html', 'notifications.html'];
+        const protectedPages = ['cart.html', 'checkout.html', 'orders.html', 'order-detail.html', 'admin.html', 'admin-dashboard.html', 'wishlist.html', 'notifications.html'];
         const adminPages = ['admin.html', 'admin-dashboard.html'];
 
         if (protectedPages.includes(path) && !user) {

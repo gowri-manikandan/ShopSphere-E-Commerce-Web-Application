@@ -22,4 +22,18 @@ public class OrderResponse {
     private String paymentMethod;
     private String paymentStatus;
     private String transactionRef;
+    private ShippingAddress shippingAddress;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ShippingAddress {
+        private String name;
+        private String line1;
+        private String city;
+        private String state;
+        private String pincode;
+        private String phone;
+    }
 }

@@ -1603,6 +1603,93 @@ header {
     text-transform: uppercase;
 }
 
+/* ========== My Orders redesign ========== */
+.orders-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+}
+.orders-title { font-size: 28px; font-weight: 800; }
+.orders-subtitle { color: var(--text-muted); margin-top: 4px; font-size: 14px; }
+.orders-header-controls { display: flex; gap: 12px; align-items: center; }
+.orders-search-wrap { position: relative; }
+.orders-search-wrap .orders-search-icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); pointer-events: none;
+}
+.orders-search-wrap input { padding-left: 38px; width: 260px; max-width: 100%; }
+.orders-filter-wrap { position: relative; }
+.orders-filter-btn { display: inline-flex; align-items: center; gap: 8px; }
+.orders-filter-btn.has-filter { border-color: var(--primary); color: var(--primary); }
+.orders-filter-menu {
+    position: absolute; right: 0; top: calc(100% + 6px);
+    background: #fff; border: 1px solid var(--border-color); border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md); padding: 8px; min-width: 190px; z-index: 30;
+    display: flex; flex-direction: column; gap: 2px;
+}
+.orders-filter-menu.hidden { display: none; }
+.orders-filter-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--text-muted); font-weight: 700; padding: 6px 10px;
+}
+.orders-filter-option {
+    text-align: left; padding: 8px 10px; border: none; background: none;
+    border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; color: var(--text-main);
+}
+.orders-filter-option:hover { background: var(--bg-main); }
+.orders-filter-option.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+
+/* Header summary: 4 data columns + a right actions cell; labels stacked over values */
+.order-header-summary { grid-template-columns: repeat(4, 1fr) auto; }
+.order-header-label { display: block; margin-bottom: 3px; }
+.order-header-val { display: block; }
+.order-total-val { font-family: var(--font-heading); font-weight: 700; }
+
+.badge { gap: 5px; align-items: center; }
+.badge svg { flex-shrink: 0; }
+
+.order-header-right { display: flex; align-items: center; gap: 14px; justify-content: flex-end; }
+.order-items-count { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+.view-details-btn { display: none; }
+.order-accordion-card.open .order-items-count { display: none; }
+.order-accordion-card.open .view-details-btn { display: inline-flex; }
+
+/* Three-column drawer: items | delivery address | receipt */
+.order-drawer-grid { grid-template-columns: 1.5fr 1fr 1.2fr; gap: 20px; }
+.order-drawer-panel {
+    background: #fff; border: 1px solid var(--border-color);
+    border-radius: var(--radius-md); padding: 20px;
+}
+.receipt-subcount { color: var(--text-muted); font-weight: 500; text-transform: none; font-size: 12px; }
+.order-address-panel { background: #f8fafc; }
+.addr-name { font-weight: 700; margin-bottom: 6px; }
+.addr-line { font-size: 13px; color: var(--text-muted); line-height: 1.55; }
+.addr-phone { margin-top: 6px; color: var(--text-main); font-weight: 600; }
+
+.receipt-rows { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; font-size: 13px; }
+.receipt-row { display: flex; justify-content: space-between; gap: 12px; }
+.receipt-row > span:first-child { color: var(--text-muted); }
+.receipt-val { font-weight: 600; }
+.receipt-mono { font-family: monospace; font-size: 12px; }
+.receipt-ref { border-bottom: 1px dashed var(--border-color); padding-bottom: 10px; }
+.receipt-total { padding-top: 6px; font-size: 15px; font-weight: 800; }
+.receipt-total > span:first-child { color: var(--text-main); }
+.cancel-order-btn { width: 100%; margin-top: 16px; height: 38px; font-weight: 600; }
+
+@media (max-width: 900px) {
+    .order-drawer-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+    .orders-header-controls { width: 100%; }
+    .orders-search-wrap { flex: 1; }
+    .orders-search-wrap input { width: 100%; }
+    .order-header-summary { grid-template-columns: 1fr 1fr; }
+    .order-header-right { grid-column: 1 / -1; justify-content: space-between; }
+}
+
 /* ==========================================
    Admin Dashboard Page
    ========================================== */

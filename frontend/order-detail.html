@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Order details, items, delivery address, and status timeline on ShopSphere.">
+    <title>Order Details — ShopSphere</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .order-detail-root { padding: 8px 0 40px; }
+        .od-breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+        .od-breadcrumb a { color: var(--text-muted); text-decoration: none; }
+        .od-breadcrumb a:hover { color: var(--primary); }
+        .od-breadcrumb .current { color: var(--primary); font-weight: 600; }
+        .od-breadcrumb span { margin: 0 6px; }
+
+        .od-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; margin-bottom: 20px; }
+        .od-title { font-size: 30px; font-weight: 800; margin: 0 0 8px; }
+        .od-badge { display: inline-flex; align-items: center; gap: 6px; }
+        .od-placed { color: var(--text-muted); font-size: 14px; margin: 10px 0 0; }
+        .od-summary-card { display: grid; grid-template-columns: repeat(4, auto); gap: 28px; background: #fff;
+            border: 1px solid var(--border-color); border-radius: var(--radius-lg, 16px); padding: 18px 26px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .od-summary-card > div { display: flex; flex-direction: column; gap: 6px; }
+        .od-k { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+        .od-v { font-size: 16px; font-weight: 700; color: var(--text-main); }
+        .od-sub { font-size: 12px; color: var(--warning); font-weight: 600; }
+        .od-sub.ok { color: var(--success); }
+
+        .od-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 20px; align-items: start; }
+        .od-col { display: flex; flex-direction: column; gap: 20px; }
+        .od-card { background: #fff; border: 1px solid var(--border-color); border-radius: var(--radius-lg, 16px);
+            padding: 22px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+        .od-card-title { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-main);
+            font-weight: 700; margin: 0 0 16px; }
+        .od-muted { color: var(--text-muted); font-weight: 500; }
+
+        .od-item { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border-color); }
+        .od-item:first-child { padding-top: 0; }
+        .od-item-img { width: 68px; height: 68px; border-radius: 10px; object-fit: cover; background: #f1f5f9; flex-shrink: 0; }
+        .od-item-info { flex: 1; min-width: 0; }
+        .od-item-name { display: block; font-weight: 700; color: var(--text-main); text-decoration: none; }
+        .od-item-name:hover { color: var(--primary); }
+        .od-item-meta { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+        .od-item-total { font-weight: 800; font-size: 16px; white-space: nowrap; }
+        .od-totals { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+        .od-total-row { display: flex; justify-content: space-between; font-size: 14px; color: var(--text-muted); }
+        .od-total-row .ok { color: var(--success); font-weight: 700; }
+        .od-total-row.grand { border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 4px;
+            font-size: 17px; font-weight: 800; color: var(--text-main); }
+
+        .od-addr p { margin: 0 0 4px; font-size: 14px; color: var(--text-muted); }
+        .od-addr .od-addr-name { font-weight: 700; color: var(--text-main); font-size: 15px; margin-bottom: 8px; }
+        .od-addr .od-addr-phone { margin-top: 8px; color: var(--text-main); }
+        .od-info-rows { display: flex; flex-direction: column; gap: 12px; }
+        .od-info-rows > div { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+        .od-info-rows > div > span:first-child { color: var(--text-muted); }
+        .od-info-rows > div > span:last-child, .od-info-rows .od-link-btn { font-weight: 600; text-align: right; }
+        .od-info-rows .ok { color: var(--success); }
+        .od-info-rows .pending { color: var(--warning); }
+        .mono { font-family: monospace; font-size: 12px; }
+        .od-link-btn { background: none; border: none; color: var(--primary); font-weight: 600; cursor: pointer; padding: 0; }
+        .od-track-btn { width: 100%; }
+
+        .od-timeline { margin-top: 20px; }
+        .od-steps { display: flex; list-style: none; padding: 0; margin: 8px 0 0; }
+        .od-step { flex: 1; text-align: center; position: relative; padding-top: 46px; }
+        .od-step-mark { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 34px; height: 34px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #fff;
+            border: 2px solid var(--border-color); color: var(--text-muted); z-index: 1; }
+        .od-step.done .od-step-mark { background: var(--success); border-color: var(--success); color: #fff; }
+        .od-step.current .od-step-mark { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .od-step::before { content: ''; position: absolute; top: 16px; left: -50%; width: 100%; height: 3px;
+            background: var(--border-color); z-index: 0; }
+        .od-step:first-child::before { display: none; }
+        .od-step.done::before, .od-step.current::before { background: var(--success); }
+        .od-step.pending::before { background: transparent; border-top: 3px dashed var(--border-color); height: 0; top: 17px; }
+        .od-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-color); display: inline-block; }
+        .od-step-label { display: block; font-weight: 700; font-size: 13px; color: var(--text-main); }
+        .od-step.pending .od-step-label { color: var(--text-muted); font-weight: 600; }
+        .od-step-when { display: block; font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+        .od-cancelled { color: var(--danger); font-weight: 600; }
+
+        .od-footer-actions { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 24px; flex-wrap: wrap; }
+        .od-footer-right { display: flex; gap: 12px; }
+        .od-detail-error { text-align: center; padding: 60px 20px; color: var(--text-muted); display: flex;
+            flex-direction: column; align-items: center; gap: 16px; }
+
+        @media (max-width: 900px) {
+            .od-grid { grid-template-columns: 1fr; }
+            .od-summary-card { grid-template-columns: 1fr 1fr; gap: 16px; }
+            .od-steps { flex-direction: column; gap: 18px; }
+            .od-step { text-align: left; padding: 0 0 0 46px; min-height: 34px; }
+            .od-step::before, .od-step.pending::before { display: none; }
+            .od-step-mark { left: 0; transform: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <header id="navbar-container"></header>
+
+    <main class="container">
+        <div id="order-detail-root" class="order-detail-root">
+            <p class="loader-text">Loading order details…</p>
+        </div>
+    </main>
+
+    <!-- Realtime (live order status timeline) -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+
+    <script type="module" src="js/order-detail.js?v=1"></script>
+</body>
+</html>
