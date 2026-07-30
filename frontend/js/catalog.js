@@ -15,6 +15,13 @@ const minPriceInput = document.getElementById('min-price-input');
 const maxPriceInput = document.getElementById('max-price-input');
 const ratingFilter = document.getElementById('rating-filter');
 const clearFiltersBtn = document.getElementById('clear-filters-btn');
+// ✨ Ask AI (semantic search) elements
+const aiInput = document.getElementById('ai-search-input');
+const aiBtn = document.getElementById('ai-search-btn');
+const aiPanel = document.getElementById('ai-search-panel');
+const aiResultsHeader = document.getElementById('ai-results-header');
+const aiResultsLabel = document.getElementById('ai-results-label');
+const aiClearBtn = document.getElementById('ai-clear-btn');
 
 // Catalog state
 let activeCategoryId = null;
@@ -26,6 +33,7 @@ let loadedProducts = [];   // server result for current category/search, before 
 let wishlistIds = new Set(); // product ids in the current user's wishlist (for heart states)
 let debounceTimeout = null;
 let stockSubscriptions = []; // live-stock handles for the currently rendered grid
+let aiMode = false;          // true while showing AI semantic-search results
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -81,6 +89,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clear-all-filters button (sidebar) + empty-state reset button
     if (clearFiltersBtn) clearFiltersBtn.addEventListener('click', resetAllFilters);
     resetFiltersBtn.addEventListener('click', resetAllFilters);
+
+    // ✨ Ask AI semantic search
+    if (aiBtn && aiInput) {
+        const runAi = () => runAiSearch(aiInput.value.trim());
+        aiBtn.addEventListener('click', runAi);
+        aiInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runAi(); });
+    }
+    if (aiPanel) {
+        aiPanel.querySelectorAll('.ai-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                if (aiInput) aiInput.value = chip.dataset.q;
+                runAiSearch(chip.dataset.q);
+            });
+        });
+    }
+    if (aiClearBtn) aiClearBtn.addEventListener('click', exitAiMode);
 });
 
 // Reset search and categories
@@ -156,6 +180,9 @@ async function loadCategories() {
 // Fetch products for the active category/search (server-side), then apply the client-side
 // price + rating filters on top of that result.
 async function loadProducts() {
+    // Any normal catalog action (search / category / filter / reset) leaves AI mode.
+    aiMode = false;
+    if (aiResultsHeader) aiResultsHeader.style.display = 'none';
     productGrid.innerHTML = getProductSkeleton(4);
     emptyCatalogState.style.display = 'none';
 
@@ -175,6 +202,56 @@ async function loadProducts() {
         showToast(err.message || 'Failed to load products', 'error');
         console.error(err);
     }
+}
+
+// ✨ AI semantic search: free-text query → semantically nearest products (§6). Results bypass
+// the keyword/category/price/rating filters (it's a ranked AI list, not a browse filter).
+async function runAiSearch(q) {
+    if (!q || q.length < 2) { showToast('Type what you\'re looking for.', 'info'); return; }
+
+    // Reset the keyword/category controls so the two modes don't visually conflict.
+    aiMode = true;
+    searchInput.value = '';
+    searchQuery = '';
+    clearCategoryHighlight();
+    activeCategoryId = null;
+
+    productGrid.innerHTML = getProductSkeleton(4);
+    emptyCatalogState.style.display = 'none';
+    if (aiResultsHeader) aiResultsHeader.style.display = 'flex';
+    if (aiResultsLabel) aiResultsLabel.textContent = `Finding the best matches for “${q}”…`;
+
+    try {
+        const results = await api.get(`/api/search/semantic?q=${encodeURIComponent(q)}&limit=12`, true) || [];
+        if (aiResultsLabel) {
+            aiResultsLabel.innerHTML = results.length
+                ? `✨ AI picks for “<strong>${escapeHtml(q)}</strong>” — ${results.length} result${results.length === 1 ? '' : 's'}`
+                : `No AI matches for “<strong>${escapeHtml(q)}</strong>”. Try describing it differently.`;
+        }
+        if (results.length === 0) {
+            productGrid.innerHTML = '';
+            emptyCatalogState.style.display = 'none'; // the AI header already explains the empty result
+            subscribeToLiveStock([]);
+            return;
+        }
+        renderProductList(results);
+    } catch (err) {
+        productGrid.innerHTML = '';
+        if (aiResultsLabel) aiResultsLabel.textContent = 'AI search is unavailable right now.';
+        showToast(err.message || 'AI search failed.', 'error');
+    }
+}
+
+function exitAiMode() {
+    aiMode = false;
+    if (aiResultsHeader) aiResultsHeader.style.display = 'none';
+    if (aiInput) aiInput.value = '';
+    loadProducts();
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 // Filter the already-loaded products by price + minimum rating (no refetch), then render.
@@ -267,8 +344,9 @@ async function loadWishlistIds() {
     }
 }
 
-// Generate single product card DOM element
-function renderProductCard(product) {
+// Generate single product card DOM element (exported so the product page's AI
+// recommendations row can reuse the exact same card + cart/wishlist wiring).
+export function renderProductCard(product) {
     const card = document.createElement('div');
     card.className = 'product-card';
     card.dataset.productId = product.id; // hook for live stock updates

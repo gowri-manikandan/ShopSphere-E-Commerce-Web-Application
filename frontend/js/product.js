@@ -1,7 +1,7 @@
 import { api } from './api.js';
 import { auth } from './auth.js';
 import { showToast, showLoader, hideLoader } from './ui.js';
-import { renderStars } from './catalog.js';
+import { renderStars, renderProductCard } from './catalog.js';
 import { refreshCartCount } from './navbar.js';
 import { subscribeWhenConnected } from './realtime.js';
 
@@ -31,9 +31,26 @@ const commentInput = document.getElementById('review-comment-input');
 document.addEventListener('DOMContentLoaded', () => {
     loadProductDetails();
     loadReviews();
+    loadRecommendations();
     setupReviewForm();
     subscribeToLiveStock();
 });
+
+// ✨ AI recommendations (§6): nearest products by embedding similarity, out-of-stock excluded.
+async function loadRecommendations() {
+    const section = document.getElementById('recommendations-section');
+    const grid = document.getElementById('recommendations-grid');
+    if (!section || !grid) return;
+    try {
+        const recs = await api.get(`/api/products/${productId}/recommendations?limit=4`, true);
+        if (!recs || recs.length === 0) { section.style.display = 'none'; return; }
+        grid.innerHTML = '';
+        recs.forEach(p => grid.appendChild(renderProductCard(p)));
+        section.style.display = 'block';
+    } catch (err) {
+        section.style.display = 'none'; // recommendations are non-critical
+    }
+}
 
 // Live stock updates (§5): patch the stock line + action buttons in place, no reload.
 function subscribeToLiveStock() {

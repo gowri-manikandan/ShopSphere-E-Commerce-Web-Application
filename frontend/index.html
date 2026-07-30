@@ -7,6 +7,29 @@
     <title>ShopSphere — E-Commerce Storefront</title>
     <!-- Stylesheet -->
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* ✨ Ask AI semantic-search panel */
+        .ai-search-panel { position: relative; border-radius: 16px; padding: 20px 22px; margin-bottom: 20px;
+            background: linear-gradient(135deg, rgba(99,102,241,.09), rgba(59,130,246,.05)); border: 1px solid rgba(99,102,241,.28); }
+        .ai-search-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+        .ai-spark { font-size: 22px; line-height: 1; filter: drop-shadow(0 1px 5px rgba(99,102,241,.45)); }
+        .ai-search-title { margin: 0; font-size: 16px; font-weight: 800;
+            background: linear-gradient(90deg, #6366f1, #3b82f6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .ai-search-sub { margin: 3px 0 0; font-size: 13px; color: var(--text-muted); }
+        .ai-search-inputrow { display: flex; gap: 10px; }
+        .ai-search-inputrow .form-control { flex: 1; }
+        .ai-search-btn { white-space: nowrap; background: linear-gradient(90deg, #6366f1, #3b82f6); border: none; }
+        .ai-search-btn:hover { filter: brightness(1.06); }
+        .ai-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .ai-chip { border: 1px solid var(--border-color); background: #fff; border-radius: 999px; padding: 6px 12px;
+            font-size: 13px; cursor: pointer; color: var(--text-main); transition: all .15s ease; }
+        .ai-chip:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+        .ai-results-header { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            margin-bottom: 16px; padding: 10px 14px; border-radius: 10px;
+            background: rgba(99,102,241,.06); border: 1px solid rgba(99,102,241,.2); }
+        .ai-results-label { font-size: 14px; color: var(--text-main); }
+        @media (max-width: 600px) { .ai-search-inputrow { flex-direction: column; } }
+    </style>
 </head>
 <body>
 
@@ -53,7 +76,35 @@
                     </svg>
                     <input type="text" id="search-input" class="form-control search-input" placeholder="Search for products, brands or models...">
                 </div>
-                
+
+                <!-- ✨ Ask AI — natural-language semantic search (§6) -->
+                <div class="ai-search-panel" id="ai-search-panel">
+                    <div class="ai-search-head">
+                        <span class="ai-spark">✨</span>
+                        <div>
+                            <h3 class="ai-search-title">Ask AI</h3>
+                            <p class="ai-search-sub">Describe what you want in plain English — our AI finds the closest products.</p>
+                        </div>
+                    </div>
+                    <div class="ai-search-inputrow">
+                        <input type="text" id="ai-search-input" class="form-control" autocomplete="off"
+                               placeholder="e.g. a thoughtful gift for someone who loves running">
+                        <button type="button" id="ai-search-btn" class="btn btn-primary ai-search-btn">Ask AI</button>
+                    </div>
+                    <div class="ai-chips">
+                        <button type="button" class="ai-chip" data-q="a thoughtful gift for a runner">🎁 gift for a runner</button>
+                        <button type="button" class="ai-chip" data-q="something to upgrade my kitchen">🍳 upgrade my kitchen</button>
+                        <button type="button" class="ai-chip" data-q="affordable wireless headphones">🎧 budget headphones</button>
+                        <button type="button" class="ai-chip" data-q="a good book to relax with">📚 book to relax</button>
+                    </div>
+                </div>
+
+                <!-- AI results header (shown only while AI results are displayed) -->
+                <div id="ai-results-header" class="ai-results-header" style="display:none;">
+                    <span id="ai-results-label" class="ai-results-label"></span>
+                    <button type="button" id="ai-clear-btn" class="btn btn-secondary btn-sm">← Back to catalog</button>
+                </div>
+
                 <!-- Product Grid -->
                 <div id="product-grid" class="product-grid">
                     <!-- Products or skeletons will be loaded here -->
@@ -80,6 +131,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
 
     <!-- Main JavaScript Logic -->
-    <script type="module" src="js/catalog.js?v=2"></script>
+    <script type="module" src="js/catalog.js?v=3"></script>
 </body>
 </html>

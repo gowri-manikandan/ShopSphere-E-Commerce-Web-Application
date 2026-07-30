@@ -38,6 +38,14 @@
             </div>
         </div>
 
+        <!-- ✨ AI Recommendations (§6) — nearest products by embedding similarity -->
+        <section class="recommendations-section" id="recommendations-section" style="display:none; margin-top: 40px;">
+            <div class="reviews-header">
+                <h3 class="section-title">✨ You might also like</h3>
+            </div>
+            <div id="recommendations-grid" class="product-grid"></div>
+        </section>
+
         <!-- Reviews Block -->
         <section class="reviews-section">
             <div class="reviews-header">
@@ -108,6 +116,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
 
     <!-- Main JavaScript Logic -->
-    <script type="module" src="js/product.js"></script>
+    <script type="module" src="js/product.js?v=2"></script>
 </body>
 </html>
