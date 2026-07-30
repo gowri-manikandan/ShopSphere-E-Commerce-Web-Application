@@ -24,15 +24,34 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<List<ProductResponse>> getProducts(
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "false") boolean includeDeleted) {
+
+        boolean actualIncludeDeleted = includeDeleted && isUserAdmin();
 
         if (search != null && !search.isBlank()) {
-            return ResponseEntity.ok(productService.search(search));
+            return ResponseEntity.ok(productService.search(search, actualIncludeDeleted));
         }
         if (categoryId != null) {
-            return ResponseEntity.ok(productService.getByCategory(categoryId));
+            return ResponseEntity.ok(productService.getByCategory(categoryId, actualIncludeDeleted));
         }
-        return ResponseEntity.ok(productService.getAll());
+        return ResponseEntity.ok(productService.getAll(actualIncludeDeleted));
+    }
+
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<ProductResponse> restore(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.restore(id));
+    }
+
+    private boolean isUserAdmin() {
+        try {
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null) return false;
+            return auth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @GetMapping("/{id}")

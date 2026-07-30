@@ -54,7 +54,7 @@ public class SemanticSearchService {
         List<ProductResponse> out = new ArrayList<>();
         for (Long id : orderedIds) {
             Product p = byId.get(id);
-            if (p != null) {
+            if (p != null && !p.isDeleted()) {
                 out.add(ProductMapper.toResponse(p, reviewRepository.findAverageRatingByProductId(id)));
             }
         }

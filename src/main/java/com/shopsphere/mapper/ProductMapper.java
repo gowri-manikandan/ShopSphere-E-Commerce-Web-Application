@@ -17,6 +17,8 @@ public class ProductMapper {
                 .categoryId(p.getCategory() != null ? p.getCategory().getId() : null)
                 .categoryName(p.getCategory() != null ? p.getCategory().getName() : null)
                 .averageRating(averageRating)
+                .deleted(p.isDeleted())
+                .deletedAt(p.getDeletedAt())
                 .build();
     }
 }

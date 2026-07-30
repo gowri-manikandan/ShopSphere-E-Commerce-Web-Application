@@ -54,7 +54,7 @@ public class RecommendationService {
                 break;
             }
             Product p = byId.get(id);
-            if (p != null && p.getStockQuantity() != null && p.getStockQuantity() > 0) {
+            if (p != null && !p.isDeleted() && p.getStockQuantity() != null && p.getStockQuantity() > 0) {
                 out.add(ProductMapper.toResponse(p, reviewRepository.findAverageRatingByProductId(id)));
             }
         }

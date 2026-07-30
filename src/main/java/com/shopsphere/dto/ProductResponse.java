@@ -22,4 +22,6 @@ public class ProductResponse {
     private Long categoryId;
     private String categoryName;
     private Double averageRating;
+    private boolean deleted;
+    private java.time.LocalDateTime deletedAt;
 }

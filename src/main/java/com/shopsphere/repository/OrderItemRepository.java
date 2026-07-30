@@ -27,6 +27,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             + "FROM OrderItem oi "
             + "WHERE oi.order.status <> com.shopsphere.entity.OrderStatus.CANCELLED "
             + "AND oi.product IS NOT NULL "
+            + "AND oi.product.deleted = false "
             + "AND oi.order.orderDate BETWEEN :start AND :end "
             + "GROUP BY oi.product.id, oi.product.name "
             + "ORDER BY SUM(oi.quantity) DESC")
@@ -38,6 +39,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             + "FROM OrderItem oi "
             + "WHERE oi.order.status <> com.shopsphere.entity.OrderStatus.CANCELLED "
             + "AND oi.product IS NOT NULL "
+            + "AND oi.product.deleted = false "
             + "AND oi.order.orderDate BETWEEN :start AND :end "
             + "GROUP BY oi.product.id, oi.product.name "
             + "ORDER BY SUM(oi.price * oi.quantity) DESC")
@@ -91,6 +93,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             + "FROM OrderItem oi "
             + "WHERE oi.order.status <> com.shopsphere.entity.OrderStatus.CANCELLED "
             + "AND oi.product IS NOT NULL "
+            + "AND oi.product.deleted = false "
             + "AND oi.product.category.id = :categoryId "
             + "AND oi.order.orderDate BETWEEN :start AND :end "
             + "GROUP BY oi.product.id, oi.product.name "
@@ -103,6 +106,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             + "FROM OrderItem oi "
             + "WHERE oi.order.status <> com.shopsphere.entity.OrderStatus.CANCELLED "
             + "AND oi.product IS NOT NULL "
+            + "AND oi.product.deleted = false "
             + "AND oi.product.category.id = :categoryId "
             + "AND oi.order.orderDate BETWEEN :start AND :end "
             + "GROUP BY oi.product.id, oi.product.name "

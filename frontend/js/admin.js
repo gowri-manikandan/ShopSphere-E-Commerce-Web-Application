@@ -6,6 +6,7 @@ import './navbar.js';
 // Admin page states
 let categoriesCache = [];
 let activeTab = 'products-panel';
+let showDeletedProducts = false;
 
 // DOM Elements
 const tabBtns = document.querySelectorAll('.admin-tab-btn');
@@ -42,6 +43,28 @@ document.addEventListener('DOMContentLoaded', () => {
     addProductBtn.addEventListener('click', () => openProductModal());
     // Add Category modal triggers
     addCategoryBtn.addEventListener('click', () => openCategoryModal());
+
+    // Setup Active/Deleted product filters
+    const prodFilterActiveBtn = document.getElementById('prod-filter-active-btn');
+    const prodFilterDeletedBtn = document.getElementById('prod-filter-deleted-btn');
+    if (prodFilterActiveBtn && prodFilterDeletedBtn) {
+        prodFilterActiveBtn.addEventListener('click', () => {
+            showDeletedProducts = false;
+            prodFilterActiveBtn.classList.remove('btn-secondary');
+            prodFilterActiveBtn.classList.add('btn-primary');
+            prodFilterDeletedBtn.classList.remove('btn-primary');
+            prodFilterDeletedBtn.classList.add('btn-secondary');
+            loadAdminProducts();
+        });
+        prodFilterDeletedBtn.addEventListener('click', () => {
+            showDeletedProducts = true;
+            prodFilterDeletedBtn.classList.remove('btn-secondary');
+            prodFilterDeletedBtn.classList.add('btn-primary');
+            prodFilterActiveBtn.classList.remove('btn-primary');
+            prodFilterActiveBtn.classList.add('btn-secondary');
+            loadAdminProducts();
+        });
+    }
 
     // Load initial products list + categories cache
     initAdminDashboard();
@@ -89,35 +112,45 @@ function loadTabContent(panelId) {
 async function loadAdminProducts() {
     try {
         showLoader();
-        const products = await api.get('/api/products', true);
+        const products = await api.get('/api/products?includeDeleted=true', true);
         productsTbody.innerHTML = '';
 
-        if (!products || products.length === 0) {
-            productsTbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No products found. Add your first product.</td></tr>`;
+        const filteredProducts = products ? products.filter(p => p.deleted === showDeletedProducts) : [];
+
+        if (filteredProducts.length === 0) {
+            productsTbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No products found.</td></tr>`;
             return;
         }
 
-        products.forEach(prod => {
+        filteredProducts.forEach(prod => {
             const tr = document.createElement('tr');
             const fallbackImage = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjY2JkNWUxIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjEiIGQ9Ik0yLjI1IDE1YTQuNSA0LjUgMCAwMDQuNSA0LjVIMThhMy43NSAzLjc1IDAgMDAxLjMzMi03LjI1NyAzIDMgMCAwMC0zLjc1OC0zLjg0OCA1LjI1IDUuMjUgMCAwMC0xMC4yMzMgMi4zM0E0LjUwMiA0LjUwMiAwIDAwMi4yNSAxNXoiIC8+PC9zdmc+`;
             
+            const actionsCell = prod.deleted ? 
+                `<button class="btn btn-primary btn-sm restore-prod-btn" data-id="${prod.id}">Restore</button>` :
+                `<button class="btn btn-secondary btn-sm edit-prod-btn" data-id="${prod.id}">Edit</button>
+                 <button class="btn btn-danger btn-sm delete-prod-btn" data-id="${prod.id}">Delete</button>`;
+
             tr.innerHTML = `
                 <td><img src="${prod.imageUrl || fallbackImage}" class="admin-table-img" alt="${prod.name}" loading="lazy" onerror="this.src='${fallbackImage}'"></td>
-                <td style="font-weight:600;">${prod.name}</td>
+                <td style="font-weight:600; ${prod.deleted ? 'text-decoration: line-through; color: var(--text-muted);' : ''}">${prod.name}</td>
                 <td><span class="badge badge-info">${prod.categoryName || 'General'}</span></td>
                 <td style="font-family:var(--font-heading); font-weight:700;">₹${prod.price.toFixed(2)}</td>
                 <td><span style="font-weight: 600; color: ${prod.stockQuantity <= 0 ? 'var(--danger)' : 'var(--text-main)'};">${prod.stockQuantity}</span></td>
                 <td>
                     <div class="admin-actions-cell">
-                        <button class="btn btn-secondary btn-sm edit-prod-btn" data-id="${prod.id}">Edit</button>
-                        <button class="btn btn-danger btn-sm delete-prod-btn" data-id="${prod.id}">Delete</button>
+                        ${actionsCell}
                     </div>
                 </td>
             `;
 
             // Bind CRUD operations
-            tr.querySelector('.edit-prod-btn').addEventListener('click', () => openProductModal(prod));
-            tr.querySelector('.delete-prod-btn').addEventListener('click', () => handleDeleteProduct(prod));
+            if (prod.deleted) {
+                tr.querySelector('.restore-prod-btn').addEventListener('click', () => handleRestoreProduct(prod));
+            } else {
+                tr.querySelector('.edit-prod-btn').addEventListener('click', () => openProductModal(prod));
+                tr.querySelector('.delete-prod-btn').addEventListener('click', () => handleDeleteProduct(prod));
+            }
 
             productsTbody.appendChild(tr);
         });
@@ -328,6 +361,26 @@ function handleDeleteProduct(product) {
                 await loadAdminProducts();
             } catch (err) {
                 showToast(err.message || 'Failed to delete product.', 'error');
+            } finally {
+                hideLoader();
+            }
+        }
+    );
+}
+
+// Restore product
+function handleRestoreProduct(product) {
+    showConfirm(
+        'Restore Product',
+        `Are you sure you want to restore the product "${product.name}"?`,
+        async () => {
+            try {
+                showLoader();
+                await api.put(`/api/products/${product.id}/restore`, {}, true);
+                showToast('Product restored successfully.', 'success');
+                await loadAdminProducts();
+            } catch (err) {
+                showToast(err.message || 'Failed to restore product.', 'error');
             } finally {
                 hideLoader();
             }

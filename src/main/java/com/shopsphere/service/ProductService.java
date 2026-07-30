@@ -35,29 +35,36 @@ public class ProductService {
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
-    public List<ProductResponse> getAll() {
-        return productRepository.findAll().stream()
+    public List<ProductResponse> getAll(boolean includeDeleted) {
+        List<Product> products = includeDeleted ? productRepository.findAll() : productRepository.findByDeletedFalse();
+        return products.stream()
                 .map(this::toResponseWithRating)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<ProductResponse> getByCategory(Long categoryId) {
-        return productRepository.findByCategoryId(categoryId).stream()
+    public List<ProductResponse> getByCategory(Long categoryId, boolean includeDeleted) {
+        List<Product> products = includeDeleted ? productRepository.findByCategoryId(categoryId) : productRepository.findByCategoryIdAndDeletedFalse(categoryId);
+        return products.stream()
                 .map(this::toResponseWithRating)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<ProductResponse> search(String keyword) {
-        return productRepository.findByNameContainingIgnoreCase(keyword).stream()
+    public List<ProductResponse> search(String keyword, boolean includeDeleted) {
+        List<Product> products = includeDeleted ? productRepository.findByNameContainingIgnoreCase(keyword) : productRepository.findByNameContainingIgnoreCaseAndDeletedFalse(keyword);
+        return products.stream()
                 .map(this::toResponseWithRating)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public ProductResponse getById(Long id) {
-        return toResponseWithRating(findProduct(id));
+        Product p = findProduct(id);
+        if (p.isDeleted()) {
+            throw new ResourceNotFoundException("Product not found with id: " + id);
+        }
+        return toResponseWithRating(p);
     }
 
     @Transactional
@@ -106,21 +113,25 @@ public class ProductService {
     public void delete(Long id) {
         Product product = findProduct(id);
 
-        // Delete related cart items
+        // Delete related cart items (evict from active carts)
         cartItemRepository.deleteByProductId(id);
 
-        // Delete related reviews
-        reviewRepository.deleteByProductId(id);
+        // Soft-delete product
+        product.setDeleted(true);
+        product.setDeletedAt(java.time.LocalDateTime.now());
+        productRepository.save(product);
 
-        // Remove from any wishlists
-        wishlistItemRepository.deleteByProductId(id);
-
-        // Disassociate related order items
-        orderItemRepository.disassociateProduct(id);
-
-        // Delete product (product_embeddings row cascades via FK)
-        productRepository.delete(product);
         eventPublisher.publishEvent(new ProductDeletedEvent(id));
+    }
+
+    @Transactional
+    public ProductResponse restore(Long id) {
+        Product product = findProduct(id);
+        product.setDeleted(false);
+        product.setDeletedAt(null);
+        Product saved = productRepository.save(product);
+        eventPublisher.publishEvent(new ProductChangedEvent(saved.getId()));
+        return toResponseWithRating(saved);
     }
 
     // ---- helpers ----
