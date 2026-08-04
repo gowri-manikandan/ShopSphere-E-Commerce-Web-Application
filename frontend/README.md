@@ -1,6 +1,6 @@
-# ShopSphere — E-Commerce Frontend
+# Sri Maruthi textiles — E-Commerce Frontend
 
-This is a clean, modern, responsive storefront frontend for the ShopSphere REST API, built using **pure HTML5, CSS3, and vanilla ES6+ JavaScript**. It consumes the backend REST endpoints via `fetch` and stores JWT user details in `localStorage`.
+This is a clean, modern, responsive storefront frontend for the Sri Maruthi textiles REST API, built using **pure HTML5, CSS3, and vanilla ES6+ JavaScript**. It consumes the backend REST endpoints via `fetch` and stores JWT user details in `localStorage`.
 
 ## Technologies Used
 - **Structure**: Semantic HTML5

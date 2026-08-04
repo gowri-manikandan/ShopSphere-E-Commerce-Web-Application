@@ -41,9 +41,9 @@ public class StoreSettingsController {
     private StoreSettings defaultSettings() {
         return StoreSettings.builder()
                 .id(SETTINGS_ID)
-                .storeName("ShopSphere")
-                .address("123 E-Commerce Boulevard, Tech Park, Bangalore, Karnataka - 560001")
-                .gstNumber("29AAAAA0000A1Z5")
+                .storeName("Sri Maruthi textiles")
+                .address("123 Handloom Street, Karur, Tamil Nadu - 639001")
+                .gstNumber("33AAAAA0000A1Z5")
                 .pan("ABCDE1234F")
                 .bankName("State Bank of India")
                 .bankAccountNumber("333344445555")

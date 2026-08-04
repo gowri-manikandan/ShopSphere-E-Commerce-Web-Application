@@ -4,6 +4,7 @@ import com.shopsphere.dto.ResetPasswordRequest;
 import com.shopsphere.entity.Role;
 import com.shopsphere.entity.User;
 import com.shopsphere.exception.BadRequestException;
+import com.shopsphere.exception.ResourceNotFoundException;
 import com.shopsphere.repository.UserRepository;
 import com.shopsphere.security.GoogleTokenVerifier;
 import com.shopsphere.security.JwtService;
@@ -60,11 +61,13 @@ class AuthServiceResetTest {
     // ----- sendPasswordResetOtp -----
 
     @Test
-    void sendPasswordResetOtp_unknownEmail_doesNotThrowOrLeak() {
+    void sendPasswordResetOtp_unknownEmail_throws() {
         when(userRepository.findByEmail("ghost@x.com")).thenReturn(Optional.empty());
-
-        authService.sendPasswordResetOtp("ghost@x.com"); // must not throw (non-enumeration)
-
+ 
+        assertThatThrownBy(() -> authService.sendPasswordResetOtp("ghost@x.com"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Email address not found.");
+ 
         verify(userRepository, never()).save(any());
         verify(emailService, never()).sendPasswordResetEmail(anyString(), anyString());
     }

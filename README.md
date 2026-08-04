@@ -1,4 +1,4 @@
-# ShopSphere — E-Commerce Backend (Spring Boot)
+# Sri Maruthi textiles — E-Commerce Backend (Spring Boot)
 
 A full REST API backend for an e-commerce platform: product catalog, shopping cart,
 orders, mock payments, reviews, addresses — secured with JWT and role-based access.

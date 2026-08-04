@@ -124,7 +124,7 @@ async function loadAdminProducts() {
 
         filteredProducts.forEach(prod => {
             const tr = document.createElement('tr');
-            const fallbackImage = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjY2JkNWUxIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjEiIGQ9Ik0yLjI1IDE1YTQuNSA0LjUgMCAwMDQuNSA0LjVIMThhMy43NSAzLjc1IDAgMDAxLjMzMi03LjI1NyAzIDMgMCAwMC0zLjc1OC0zLjg0OCA1LjI1IDUuMjUgMCAwMC0xMC4yMzMgMi4zM0E0LjUwMiA0LjUwMiAwIDAwMi4yNSAxNXoiIC8+PC9zdmc+`;
+            const fallbackImage = 'data:image/svg+xml;utf8,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%23cbd5e1" width="100%" height="100%"%3E%3Crect width="100%" height="100%" fill="%23f1f5f9"/%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z"/%3E%3C/svg%3E';
             
             const actionsCell = prod.deleted ? 
                 `<button class="btn btn-primary btn-sm restore-prod-btn" data-id="${prod.id}">Restore</button>` :
@@ -132,7 +132,7 @@ async function loadAdminProducts() {
                  <button class="btn btn-danger btn-sm delete-prod-btn" data-id="${prod.id}">Delete</button>`;
 
             tr.innerHTML = `
-                <td><img src="${prod.imageUrl || fallbackImage}" class="admin-table-img" alt="${prod.name}" loading="lazy" onerror="this.src='${fallbackImage}'"></td>
+                <td><img src="${prod.imageUrl || fallbackImage}" class="admin-table-img" alt="${prod.name}" loading="lazy" onerror="this.onerror=null; this.src='${fallbackImage}'"></td>
                 <td style="font-weight:600; ${prod.deleted ? 'text-decoration: line-through; color: var(--text-muted);' : ''}">${prod.name}</td>
                 <td><span class="badge badge-info">${prod.categoryName || 'General'}</span></td>
                 <td style="font-family:var(--font-heading); font-weight:700;">₹${prod.price.toFixed(2)}</td>

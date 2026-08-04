@@ -400,7 +400,7 @@ public class AdminAnalyticsService {
 
         // Header
         y -= 25;
-        drawText(sb, "ShopSphere Super Admin Report", 50, y, 20);
+        drawText(sb, "Sri Maruthi textiles Super Admin Report", 50, y, 20);
         y -= 20;
         drawText(sb, "Analytics Report for Period: " + monthStr, 50, y, 12);
         y -= 15;
@@ -484,7 +484,7 @@ public class AdminAnalyticsService {
         sb.append("50 ").append(y).append(" m 545 ").append(y).append(" l S\n");
 
         // Footer note
-        drawText(sb, "Report generated automatically by ShopSphere Super Admin on " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), 50, 60, 8);
+        drawText(sb, "Report generated automatically by Sri Maruthi textiles Super Admin on " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")), 50, 60, 8);
 
         SimplePdfWriter writer = new SimplePdfWriter();
         return writer.build(sb.toString());

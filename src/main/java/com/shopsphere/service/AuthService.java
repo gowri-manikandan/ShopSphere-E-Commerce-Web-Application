@@ -7,6 +7,7 @@ import com.shopsphere.entity.AuthProvider;
 import com.shopsphere.entity.Role;
 import com.shopsphere.entity.User;
 import com.shopsphere.exception.BadRequestException;
+import com.shopsphere.exception.ResourceNotFoundException;
 import com.shopsphere.repository.UserRepository;
 import com.shopsphere.security.GoogleTokenVerifier;
 import com.shopsphere.security.JwtService;
@@ -241,7 +242,7 @@ public class AuthService {
     public void sendPasswordResetOtp(String email) {
         var maybeUser = userRepository.findByEmail(email);
         if (maybeUser.isEmpty()) {
-            return; // silently succeed — don't reveal whether the email exists
+            throw new ResourceNotFoundException("Email address not found.");
         }
         User user = maybeUser.get();
         java.time.LocalDateTime now = java.time.LocalDateTime.now();

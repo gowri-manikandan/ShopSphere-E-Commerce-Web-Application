@@ -180,7 +180,7 @@ export function showLoader() {
         loader.innerHTML = `
             <div class="spinner-container">
                 <div class="premium-spinner"></div>
-                <p class="loader-text">Loading ShopSphere...</p>
+                <p class="loader-text">Loading Sri Maruthi textiles...</p>
             </div>
         `;
         document.body.appendChild(loader);
