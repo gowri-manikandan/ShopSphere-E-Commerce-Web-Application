@@ -11,28 +11,22 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class StoreSettingsController {
 
+    private static final Long SETTINGS_ID = 1L;
+
     private final StoreSettingsRepository repository;
 
     @GetMapping
     public ResponseEntity<StoreSettings> getSettings() {
-        StoreSettings settings = repository.findById(1L)
-                .orElseGet(() -> repository.save(StoreSettings.builder()
-                        .storeName("ShopSphere")
-                        .address("123 E-Commerce Boulevard, Tech Park, Bangalore, Karnataka - 560001")
-                        .gstNumber("29AAAAA0000A1Z5")
-                        .pan("ABCDE1234F")
-                        .bankName("State Bank of India")
-                        .bankAccountNumber("333344445555")
-                        .bankIfsc("SBIN0001234")
-                        .build()));
-        return ResponseEntity.ok(settings);
+        return ResponseEntity.ok(repository.findById(SETTINGS_ID)
+                .orElseGet(() -> repository.save(defaultSettings())));
     }
 
     @PutMapping
     public ResponseEntity<StoreSettings> updateSettings(@RequestBody StoreSettings newSettings) {
-        StoreSettings settings = repository.findById(1L)
-                .orElseGet(() -> StoreSettings.builder().build());
-        
+        StoreSettings settings = repository.findById(SETTINGS_ID)
+                .orElseGet(() -> StoreSettings.builder().id(SETTINGS_ID).build());
+
+        settings.setId(SETTINGS_ID);
         settings.setStoreName(newSettings.getStoreName());
         settings.setAddress(newSettings.getAddress());
         settings.setGstNumber(newSettings.getGstNumber());
@@ -42,5 +36,18 @@ public class StoreSettingsController {
         settings.setBankIfsc(newSettings.getBankIfsc());
 
         return ResponseEntity.ok(repository.save(settings));
+    }
+
+    private StoreSettings defaultSettings() {
+        return StoreSettings.builder()
+                .id(SETTINGS_ID)
+                .storeName("ShopSphere")
+                .address("123 E-Commerce Boulevard, Tech Park, Bangalore, Karnataka - 560001")
+                .gstNumber("29AAAAA0000A1Z5")
+                .pan("ABCDE1234F")
+                .bankName("State Bank of India")
+                .bankAccountNumber("333344445555")
+                .bankIfsc("SBIN0001234")
+                .build();
     }
 }

@@ -4,7 +4,7 @@
 
 SET FOREIGN_KEY_CHECKS = 0;
 
-CREATE TABLE `users` (
+CREATE TABLE IF NOT EXISTS `users` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) DEFAULT NULL,
   `email` varchar(150) NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `UK6dotkott2kjsp8vw4d0m25fb7` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `categories` (
+CREATE TABLE IF NOT EXISTS `categories` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `description` varchar(255) DEFAULT NULL,
   `name` varchar(100) NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE `categories` (
   UNIQUE KEY `UKt8o6pivur7nn124jehx7cygw5` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `products` (
+CREATE TABLE IF NOT EXISTS `products` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) DEFAULT NULL,
   `description` text,
@@ -46,14 +46,14 @@ CREATE TABLE `products` (
   CONSTRAINT `FKog2rp4qthbtt2lfyhfo32lsw9` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `product_images` (
+CREATE TABLE IF NOT EXISTS `product_images` (
   `product_id` bigint NOT NULL,
   `image_url` varchar(255) DEFAULT NULL,
   KEY `FKqnq71xsohugpqwf3c9gxmsuy` (`product_id`),
   CONSTRAINT `FKqnq71xsohugpqwf3c9gxmsuy` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `addresses` (
+CREATE TABLE IF NOT EXISTS `addresses` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `city` varchar(100) NOT NULL,
   `line1` varchar(255) NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE `addresses` (
   CONSTRAINT `FK1fa36y2oqhao3wgg2rw1pi459` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `cart_items` (
+CREATE TABLE IF NOT EXISTS `cart_items` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `quantity` int NOT NULL,
   `product_id` bigint NOT NULL,
@@ -78,7 +78,7 @@ CREATE TABLE `cart_items` (
   CONSTRAINT `FK709eickf3kc0dujx3ub9i7btf` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `orders` (
+CREATE TABLE IF NOT EXISTS `orders` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `order_date` datetime(6) DEFAULT NULL,
   `status` enum('CANCELLED','DELIVERED','PLACED','SHIPPED') NOT NULL,
@@ -92,7 +92,7 @@ CREATE TABLE `orders` (
   CONSTRAINT `FKhlglkvf5i60dv6dn397ethgpt` FOREIGN KEY (`address_id`) REFERENCES `addresses` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `order_items` (
+CREATE TABLE IF NOT EXISTS `order_items` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `price` decimal(10,2) NOT NULL,
   `quantity` int NOT NULL,
@@ -105,7 +105,7 @@ CREATE TABLE `order_items` (
   CONSTRAINT `FKocimc7dtr037rh4ls4l95nlfi` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `payments` (
+CREATE TABLE IF NOT EXISTS `payments` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `amount` decimal(10,2) NOT NULL,
   `method` enum('CARD','COD','NETBANKING','UPI') NOT NULL,
@@ -118,7 +118,7 @@ CREATE TABLE `payments` (
   CONSTRAINT `FK81gagumt0r8y3rmudcgpbk42l` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `reviews` (
+CREATE TABLE IF NOT EXISTS `reviews` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `comment` varchar(500) DEFAULT NULL,
   `created_at` datetime(6) DEFAULT NULL,
@@ -132,7 +132,7 @@ CREATE TABLE `reviews` (
   CONSTRAINT `FKpl51cejpw4gy5swfar8br9ngi` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `refresh_tokens` (
+CREATE TABLE IF NOT EXISTS `refresh_tokens` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `expiry_date` datetime(6) NOT NULL,
   `revoked` bit(1) NOT NULL,

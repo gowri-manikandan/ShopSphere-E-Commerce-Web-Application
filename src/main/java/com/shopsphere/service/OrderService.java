@@ -335,8 +335,15 @@ public class OrderService {
                 System.err.println("Failed to parse estimated delivery date: " + estimatedDeliveryDate);
             }
         }
-        order.setEstimatedDeliveryDate(estDate);
 
+        if (estDate != null) {
+            java.time.LocalDateTime orderDate = order.getOrderDate();
+            if (orderDate != null && estDate.toLocalDate().isBefore(orderDate.toLocalDate())) {
+                throw new BadRequestException("Estimated delivery date cannot be earlier than the order placement date.");
+            }
+        }
+
+        order.setEstimatedDeliveryDate(estDate);
         Order saved = orderRepository.save(order);
         return OrderMapper.toResponse(saved);
     }

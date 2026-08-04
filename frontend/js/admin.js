@@ -911,7 +911,7 @@ function openShippingModal(order) {
             </div>
             <div class="form-group">
                 <label for="ship-est-delivery" class="form-label">Estimated Delivery Date</label>
-                <input type="date" id="ship-est-delivery" class="form-control" value="${estDeliveryVal}">
+                <input type="date" id="ship-est-delivery" class="form-control" value="${estDeliveryVal}" min="${order.orderDate ? order.orderDate.substring(0, 10) : ''}">
             </div>
         </form>
     `;
@@ -934,6 +934,14 @@ function openShippingModal(order) {
             if (!line1 || !city || !state || !pincode || !phone) {
                 showToast('All delivery address fields are required.', 'error');
                 return false;
+            }
+
+            if (estimatedDeliveryDate && order.orderDate) {
+                const orderDateStr = order.orderDate.substring(0, 10);
+                if (estimatedDeliveryDate < orderDateStr) {
+                    showToast('Estimated delivery date cannot be earlier than the order placement date.', 'error');
+                    return false;
+                }
             }
 
             try {

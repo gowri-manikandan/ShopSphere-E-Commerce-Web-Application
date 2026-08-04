@@ -3,10 +3,12 @@ package com.shopsphere.service;
 import com.shopsphere.dto.CategoryRequest;
 import com.shopsphere.dto.CategoryResponse;
 import com.shopsphere.entity.Category;
+import com.shopsphere.entity.Product;
 import com.shopsphere.exception.BadRequestException;
 import com.shopsphere.exception.ResourceNotFoundException;
 import com.shopsphere.mapper.CategoryMapper;
 import com.shopsphere.repository.CategoryRepository;
+import com.shopsphere.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +19,7 @@ import java.util.List;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
 
     public List<CategoryResponse> getAll() {
         return categoryRepository.findAll().stream()
@@ -47,8 +50,29 @@ public class CategoryService {
         return CategoryMapper.toResponse(categoryRepository.save(category));
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public void delete(Long id) {
         Category category = findCategory(id);
+
+        // Find or create "Uncategorized" category
+        Category uncategorized = categoryRepository.findByName("Uncategorized")
+                .orElseGet(() -> categoryRepository.save(Category.builder()
+                        .name("Uncategorized")
+                        .description("Default category for products whose category was deleted")
+                        .build()));
+
+        // Check if we are trying to delete the Uncategorized category itself
+        if (category.getId().equals(uncategorized.getId())) {
+            throw new BadRequestException("The Uncategorized category cannot be deleted.");
+        }
+
+        // Reassign all products belonging to this category to Uncategorized
+        List<Product> products = productRepository.findByCategoryId(id);
+        for (Product product : products) {
+            product.setCategory(uncategorized);
+            productRepository.save(product);
+        }
+
         categoryRepository.delete(category);
     }
 
