@@ -247,37 +247,75 @@ async function downloadInvoice(o) {
     const bankAcc = settings?.bankAccountNumber || '333344445555';
     const bankIfsc = settings?.bankIfsc || 'SBIN0001234';
 
+    // GST Rule: If Shipping State matches Company State, apply CGST (2.5%) & SGST (2.5%).
+    // Otherwise, apply IGST (5%).
+    const customerState = (o.shippingAddress?.state || '').trim().toLowerCase();
+    const companyAddress = storeAddress.trim().toLowerCase();
+    
+    const normCust = customerState.replace(/\s+/g, '');
+    const normComp = companyAddress.replace(/\s+/g, '');
+    const isSameState = normCust && normComp ? normComp.includes(normCust) : true;
+
     const win = window.open('', '_blank', 'width=850,height=950');
     if (!win) { showToast('Allow pop-ups to download the invoice.', 'error'); return; }
 
     const rows = o.items.map((i, idx) => {
         const price = Number(i.price || 0);
         const subtotal = Number(i.subtotal || 0);
-        const taxableUnit = price / 1.18;
-        const cgstUnit = taxableUnit * 0.09;
-        const sgstUnit = taxableUnit * 0.09;
+        const taxableUnit = price / 1.05;
+        const cgstUnit = taxableUnit * 0.025;
+        const sgstUnit = taxableUnit * 0.025;
+        const igstUnit = taxableUnit * 0.05;
+        
         const totalTaxable = taxableUnit * i.quantity;
         const totalCgst = cgstUnit * i.quantity;
         const totalSgst = sgstUnit * i.quantity;
-        const totalGst = totalCgst + totalSgst;
+        const totalIgst = igstUnit * i.quantity;
+        const totalGst = isSameState ? (totalCgst + totalSgst) : totalIgst;
 
         return `<tr>
             <td style="text-align:center;">${idx + 1}</td>
             <td><strong>${esc(i.productName)}</strong></td>
             <td style="text-align:right;">${inr(taxableUnit)}</td>
             <td style="text-align:center;">${i.quantity}</td>
-            <td style="text-align:right;">${inr(totalCgst)} <span class="tax-pct">(9%)</span></td>
-            <td style="text-align:right;">${inr(totalSgst)} <span class="tax-pct">(9%)</span></td>
+            ${isSameState ? `
+                <td style="text-align:right;">${inr(totalCgst)} <span class="tax-pct">(2.5%)</span></td>
+                <td style="text-align:right;">${inr(totalSgst)} <span class="tax-pct">(2.5%)</span></td>
+            ` : `
+                <td style="text-align:right;">${inr(totalIgst)} <span class="tax-pct">(5%)</span></td>
+            `}
             <td style="text-align:right;">${inr(totalGst)}</td>
             <td style="text-align:right; font-weight: 600;">${inr(subtotal)}</td>
         </tr>`;
     }).join('');
 
     const totalBill = Number(o.totalAmount || 0);
-    const totalTaxableVal = totalBill / 1.18;
-    const cgstAmt = totalTaxableVal * 0.09;
-    const sgstAmt = totalTaxableVal * 0.09;
-    const gstAmt = cgstAmt + sgstAmt;
+    const totalTaxableVal = totalBill / 1.05;
+    const cgstAmt = totalTaxableVal * 0.025;
+    const sgstAmt = totalTaxableVal * 0.025;
+    const igstAmt = totalTaxableVal * 0.05;
+    const gstAmt = totalBill - totalTaxableVal;
+
+    let taxSummaryRows = '';
+    if (isSameState) {
+        taxSummaryRows = `
+            <tr>
+                <td>CGST (2.5%)</td>
+                <td style="text-align:right;">${inr(cgstAmt)}</td>
+            </tr>
+            <tr>
+                <td>SGST (2.5%)</td>
+                <td style="text-align:right;">${inr(sgstAmt)}</td>
+            </tr>
+        `;
+    } else {
+        taxSummaryRows = `
+            <tr>
+                <td>IGST (5%)</td>
+                <td style="text-align:right;">${inr(igstAmt)}</td>
+            </tr>
+        `;
+    }
 
     const a = o.shippingAddress;
     
@@ -508,12 +546,16 @@ async function downloadInvoice(o) {
             <thead>
                 <tr>
                     <th style="width: 5%; text-align:center;">#</th>
-                    <th style="width: 40%;">Item Description</th>
+                    <th style="width: 35%;">Item Description</th>
                     <th style="width: 12%; text-align:right;">Taxable Value</th>
                     <th style="width: 8%; text-align:center;">Qty</th>
-                    <th style="width: 12%; text-align:right;">CGST</th>
-                    <th style="width: 12%; text-align:right;">SGST</th>
-                    <th style="width: 10%; text-align:right;">Total GST</th>
+                    ${isSameState ? `
+                        <th style="width: 12%; text-align:right;">CGST</th>
+                        <th style="width: 12%; text-align:right;">SGST</th>
+                    ` : `
+                        <th style="width: 24%; text-align:right;">IGST</th>
+                    `}
+                    <th style="width: 13%; text-align:right;">Total GST</th>
                     <th style="width: 15%; text-align:right;">Net Amount</th>
                 </tr>
             </thead>
@@ -535,16 +577,9 @@ async function downloadInvoice(o) {
                 <td>Taxable Value (Subtotal)</td>
                 <td style="text-align:right;">${inr(totalTaxableVal)}</td>
             </tr>
+            ${taxSummaryRows}
             <tr>
-                <td>CGST (9%)</td>
-                <td style="text-align:right;">${inr(cgstAmt)}</td>
-            </tr>
-            <tr>
-                <td>SGST (9%)</td>
-                <td style="text-align:right;">${inr(sgstAmt)}</td>
-            </tr>
-            <tr>
-                <td>Total Tax Amount (18%)</td>
+                <td>Total Tax Amount (5%)</td>
                 <td style="text-align:right;">${inr(gstAmt)}</td>
             </tr>
             <tr class="grand-total">
