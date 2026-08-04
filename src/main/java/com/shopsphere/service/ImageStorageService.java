@@ -37,24 +37,35 @@ public class ImageStorageService {
         this.localDir = localDir.endsWith("/") ? localDir : localDir + "/";
     }
 
-    /**
-     * Store the given file for the given user and return the URL to persist / display.
-     * Cloudinary → absolute {@code https://res.cloudinary.com/...} URL; local → relative
-     * {@code uploads/<uuid>.ext} served by the frontend origin.
-     */
     public String store(MultipartFile file, User user) {
         try {
             if (cloudinaryConfig.isConfigured()) {
                 try {
-                    // No public_id -> Cloudinary auto-generates a unique one, so every upload is a
-                    // distinct asset. (This endpoint serves avatars AND product images; a fixed
-                    // per-user id would make each new upload overwrite the previous one.)
                     return cloudinaryClient.upload(file.getBytes(), file.getOriginalFilename(),
                             file.getContentType(), null);
                 } catch (RuntimeException e) {
-                    // Cloudinary unreachable (e.g. local HTTPS/PKIX block) or rejected the
-                    // request — don't fail the upload; fall back to local disk and warn loudly
-                    // so a real misconfiguration is still visible in the logs.
+                    log.warn("Cloudinary upload failed ({}). Falling back to local storage. "
+                            + "Check CLOUDINARY_* creds / connectivity if this happens in production.",
+                            e.getMessage());
+                }
+            }
+            return storeLocally(file);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store file: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Store the given file with the specified folder and publicId.
+     * Cloudinary → absolute URL; local → relative uploads/<uuid>.ext path.
+     */
+    public String store(MultipartFile file, String folder, String publicId) {
+        try {
+            if (cloudinaryConfig.isConfigured()) {
+                try {
+                    return cloudinaryClient.upload(file.getBytes(), file.getOriginalFilename(),
+                            file.getContentType(), folder, publicId);
+                } catch (RuntimeException e) {
                     log.warn("Cloudinary upload failed ({}). Falling back to local storage. "
                             + "Check CLOUDINARY_* creds / connectivity if this happens in production.",
                             e.getMessage());

@@ -294,7 +294,7 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse updateShippingInfo(Long orderId, String line1, String city, String state, String pincode, String phone, String courierPartner, String trackingNumber) {
+    public OrderResponse updateShippingInfo(Long orderId, String line1, String city, String state, String pincode, String phone, String courierPartner, String trackingNumber, String estimatedDeliveryDate) {
         Order order = findOrder(orderId);
         Address address = order.getAddress();
         if (address == null) {
@@ -318,6 +318,24 @@ public class OrderService {
 
         order.setCourierPartner(courierPartner);
         order.setTrackingNumber(trackingNumber);
+
+        java.time.LocalDateTime estDate = null;
+        if (estimatedDeliveryDate != null && !estimatedDeliveryDate.isBlank()) {
+            try {
+                if (estimatedDeliveryDate.length() == 10) {
+                    estDate = java.time.LocalDate.parse(estimatedDeliveryDate).atStartOfDay();
+                } else {
+                    String formatted = estimatedDeliveryDate;
+                    if (estimatedDeliveryDate.length() == 16) {
+                        formatted += ":00";
+                    }
+                    estDate = java.time.LocalDateTime.parse(formatted);
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to parse estimated delivery date: " + estimatedDeliveryDate);
+            }
+        }
+        order.setEstimatedDeliveryDate(estDate);
 
         Order saved = orderRepository.save(order);
         return OrderMapper.toResponse(saved);

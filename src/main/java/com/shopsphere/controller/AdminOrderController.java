@@ -53,7 +53,8 @@ public class AdminOrderController {
                 request.getPincode(),
                 request.getPhone(),
                 request.getCourierPartner(),
-                request.getTrackingNumber()
+                request.getTrackingNumber(),
+                request.getEstimatedDeliveryDate()
         ));
     }
 

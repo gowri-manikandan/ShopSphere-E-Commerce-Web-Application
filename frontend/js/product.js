@@ -99,34 +99,55 @@ async function loadProductDetails() {
         const fallbackImage = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjY2JkNWUxIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjEiIGQ9Ik0yLjI1IDE1YTQuNSA0LjUgMCAwMDQuNSA0LjVIMThhMy43NSAzLjc1IDAgMDAxLjMzMi03LjI1NyAzIDMgMCAwMC0zLjc1OC0zLjg0OCA1LjI1IDUuMjUgMCAwMC0xMC4yMzMgMi4zM0E0LjUwMiA0LjUwMiAwIDAwMi4yNSAxNXoiIC8+PC9zdmc+`;
         const isOutOfStock = product.stockQuantity <= 0;
 
-        // Gather all images (main imageUrl + additionalImages)
-        const images = [];
-        if (product.imageUrl) images.push(product.imageUrl);
+        // Gather all media items (images + videos)
+        const mediaItems = [];
+        if (product.imageUrl) {
+            mediaItems.push({ type: 'image', url: product.imageUrl });
+        }
         if (product.additionalImages && Array.isArray(product.additionalImages)) {
             product.additionalImages.forEach(img => {
-                if (img && !images.includes(img)) {
-                    images.push(img);
+                if (img && !mediaItems.some(item => item.url === img)) {
+                    mediaItems.push({ type: 'image', url: img });
                 }
             });
         }
-        if (images.length === 0) {
-            images.push(fallbackImage);
+        if (product.videoUrl) {
+            mediaItems.push({ type: 'video', url: product.videoUrl });
+        }
+        if (mediaItems.length === 0) {
+            mediaItems.push({ type: 'image', url: fallbackImage });
         }
 
         // Construct gallery HTML
+        let firstMediaHtml = '';
+        if (mediaItems[0].type === 'video') {
+            firstMediaHtml = getEmbedVideoHtml(mediaItems[0].url);
+        } else {
+            firstMediaHtml = `<img src="${mediaItems[0].url}" class="main-image-preview" id="main-image-preview" alt="${product.name}" onerror="this.src='${fallbackImage}'">`;
+        }
+
         let galleryHtml = `
             <div class="product-gallery-container">
                 <div class="main-image-wrapper" id="main-image-wrapper">
-                    <img src="${images[0]}" class="main-image-preview" id="main-image-preview" alt="${product.name}" onerror="this.src='${fallbackImage}'">
+                    ${firstMediaHtml}
                 </div>
         `;
 
-        if (images.length > 1) {
+        if (mediaItems.length > 1) {
             galleryHtml += `<div class="thumbnail-grid">`;
-            images.forEach((img, idx) => {
+            mediaItems.forEach((item, idx) => {
+                const isVideo = item.type === 'video';
+                const thumbSrc = isVideo ? getVideoThumbnail(item.url) : item.url;
                 galleryHtml += `
-                    <div class="thumbnail-item ${idx === 0 ? 'active' : ''}" data-index="${idx}">
-                        <img src="${img}" alt="${product.name} Thumbnail" loading="lazy" onerror="this.src='${fallbackImage}'">
+                    <div class="thumbnail-item ${idx === 0 ? 'active' : ''} ${isVideo ? 'video-thumbnail' : ''}" data-index="${idx}">
+                        <img src="${thumbSrc}" alt="${product.name} Thumbnail" loading="lazy" onerror="this.src='${fallbackImage}'">
+                        ${isVideo ? `
+                        <div class="play-overlay">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                                <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        ` : ''}
                     </div>
                 `;
             });
@@ -177,7 +198,7 @@ async function loadProductDetails() {
         `;
 
         // Wire up event listeners
-        setupImageGallery(images);
+        setupImageGallery(mediaItems);
         setupQuantityPicker();
         setupCartButton();
     } catch (err) {
@@ -186,16 +207,45 @@ async function loadProductDetails() {
     }
 }
 
+// Helpers for video embeds and thumbnails
+function getEmbedVideoHtml(url) {
+    if (!url) return '';
+    // Check for YouTube
+    const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const ytMatch = url.match(ytRegex);
+    if (ytMatch && ytMatch[1]) {
+        return `<iframe class="main-video-preview" src="https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%; height:100%; object-fit:cover; border-radius: var(--radius-xl);"></iframe>`;
+    }
+    // Check for Vimeo
+    const vimeoRegex = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)(\d+)/;
+    const vimeoMatch = url.match(vimeoRegex);
+    if (vimeoMatch && vimeoMatch[1]) {
+        return `<iframe class="main-video-preview" src="https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&muted=1" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="width:100%; height:100%; object-fit:cover; border-radius: var(--radius-xl);"></iframe>`;
+    }
+    // Direct MP4 / other video file
+    return `<video src="${url}" class="main-video-preview" controls autoplay muted style="width:100%; height:100%; object-fit:contain; border-radius: var(--radius-xl);"></video>`;
+}
+
+function getVideoThumbnail(url) {
+    const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const ytMatch = url.match(ytRegex);
+    if (ytMatch && ytMatch[1]) {
+        return `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
+    }
+    // Generic video icon/thumbnail
+    return `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjOTRhM2I4IiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjEuNSIgZD0iTTE1Ljc1IDZIMy43NUExLjc1IDEuNzUgMCAwMC0xLjc1IDEuNzV2OC41YzAgLjk2Ni43ODQgMS43NSAxLjc1IDEuNzVoMTJjLjk2NiAwIDEuNzUtLjc4NCAxLjc1LTEuNzV2LTguNWMwLS45NjYtLjc4NC0xLjc1LTEuNzUtMS43NXoiLz48cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMS41IiBkPSJNMjEuNzUgOC4yNWwtNC41IDIuODQ0djEuOTA2bDQuNSAyLjg0NFY4LjI1eiIvPjwvc3ZnPg==`;
+}
+
 // Set up image gallery thumbnail swapping and hover zoom
-function setupImageGallery(images) {
+function setupImageGallery(mediaItems) {
     const mainWrapper = document.getElementById('main-image-wrapper');
-    const mainPreview = document.getElementById('main-image-preview');
     const thumbnails = document.querySelectorAll('.thumbnail-item');
 
-    if (!mainWrapper || !mainPreview) return;
+    if (!mainWrapper) return;
 
-    // Hover zoom logic using coordinate-based scaling
-    mainWrapper.addEventListener('mousemove', (e) => {
+    const handleHoverZoom = (e) => {
+        const mainPreview = document.getElementById('main-image-preview');
+        if (!mainPreview) return;
         const rect = mainWrapper.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -203,25 +253,49 @@ function setupImageGallery(images) {
         const yPercent = (y / rect.height) * 100;
         mainPreview.style.transformOrigin = `${xPercent}% ${yPercent}%`;
         mainPreview.style.transform = 'scale(2.0)';
-    });
+    };
 
-    mainWrapper.addEventListener('mouseleave', () => {
+    const resetHoverZoom = () => {
+        const mainPreview = document.getElementById('main-image-preview');
+        if (!mainPreview) return;
         mainPreview.style.transform = 'scale(1.0)';
         mainPreview.style.transformOrigin = 'center center';
-    });
+    };
+
+    const updateZoomEvents = (isImage) => {
+        if (isImage) {
+            mainWrapper.addEventListener('mousemove', handleHoverZoom);
+            mainWrapper.addEventListener('mouseleave', resetHoverZoom);
+            mainWrapper.style.cursor = 'zoom-in';
+        } else {
+            mainWrapper.removeEventListener('mousemove', handleHoverZoom);
+            mainWrapper.removeEventListener('mouseleave', resetHoverZoom);
+            mainWrapper.style.cursor = 'default';
+        }
+    };
+
+    // Initial zoom state
+    updateZoomEvents(mediaItems[0] && mediaItems[0].type === 'image');
 
     // Thumbnail active switching
     thumbnails.forEach(thumb => {
-        const selectImage = () => {
+        const selectMedia = () => {
             thumbnails.forEach(t => t.classList.remove('active'));
             thumb.classList.add('active');
             const idx = parseInt(thumb.getAttribute('data-index'));
-            if (images[idx]) {
-                mainPreview.src = images[idx];
+            const item = mediaItems[idx];
+            if (item) {
+                if (item.type === 'video') {
+                    mainWrapper.innerHTML = getEmbedVideoHtml(item.url);
+                    updateZoomEvents(false);
+                } else {
+                    mainWrapper.innerHTML = `<img src="${item.url}" class="main-image-preview" id="main-image-preview" alt="${currentProduct.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlPSIjY2JkNWUxIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjEiIGQ9Ik0yLjI1IDE1YTQuNSA0LjUgMCAwMDQuNSA0LjVIMThhMy43NSAzLjc1IDAgMDAxLjMzMi03LjI1NyAzIDMgMCAwMC0zLjc1OC0zLjg0OCA1LjI1IDUuMjUgMCAwMC0xMC4yMzMgMi4zM0E0LjUwMiA0LjUwMiAwIDAwMi4yNSAxNXoiIC8+PC9zdmc+'">`;
+                    updateZoomEvents(true);
+                }
             }
         };
-        thumb.addEventListener('click', selectImage);
-        thumb.addEventListener('mouseenter', selectImage);
+        thumb.addEventListener('click', selectMedia);
+        thumb.addEventListener('mouseenter', selectMedia);
     });
 }
 

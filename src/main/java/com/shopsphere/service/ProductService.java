@@ -78,6 +78,7 @@ public class ProductService {
                 .imageUrl(request.getImageUrl())
                 .category(category)
                 .additionalImages(request.getAdditionalImages() != null ? request.getAdditionalImages() : new java.util.ArrayList<>())
+                .videoUrl(request.getVideoUrl())
                 .build();
         Product saved = productRepository.save(product);
         // Embedding generated after commit, off-thread (see EmbeddingService).
@@ -96,6 +97,7 @@ public class ProductService {
         product.setStockQuantity(request.getStockQuantity());
         product.setImageUrl(request.getImageUrl());
         product.setCategory(category);
+        product.setVideoUrl(request.getVideoUrl());
         
         if (request.getAdditionalImages() != null) {
             product.getAdditionalImages().clear();

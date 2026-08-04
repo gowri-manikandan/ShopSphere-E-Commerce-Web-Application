@@ -46,22 +46,23 @@ public class CloudinaryClient {
                 .build();
     }
 
-    /**
-     * Upload an image to Cloudinary and return its {@code secure_url}.
-     *
-     * <p>{@code publicId} is optional: when null/blank, Cloudinary auto-generates a unique id so
-     * every upload is a distinct asset (this endpoint serves both avatars and product images, so
-     * a fixed per-user id would make repeated uploads overwrite each other). Pass a specific id
-     * only when you deliberately want to overwrite.
-     */
     public String upload(byte[] bytes, String filename, String contentType, String publicId) {
+        return upload(bytes, filename, contentType, null, publicId);
+    }
+
+    /**
+     * Upload a file (image, video, or other asset) to Cloudinary.
+     * Uses custom folder if provided, and chooses the correct Cloudinary API endpoint based on content type.
+     */
+    public String upload(byte[] bytes, String filename, String contentType, String folder, String publicId) {
         long timestamp = System.currentTimeMillis() / 1000L;
 
-        // Params that participate in the signature (sorted). Omit blanks — a blank public_id is
-        // left out entirely so Cloudinary assigns a fresh, unique one.
+        // Params that participate in the signature (sorted).
         TreeMap<String, String> signed = new TreeMap<>();
-        if (config.getFolder() != null && !config.getFolder().isBlank()) {
-            signed.put("folder", config.getFolder());
+        
+        String targetFolder = (folder != null && !folder.isBlank()) ? folder : config.getFolder();
+        if (targetFolder != null && !targetFolder.isBlank()) {
+            signed.put("folder", targetFolder);
         }
         if (publicId != null && !publicId.isBlank()) {
             signed.put("public_id", publicId);
@@ -72,9 +73,17 @@ public class CloudinaryClient {
         String boundary = "----ShopSphereBoundary" + UUID.randomUUID().toString().replace("-", "");
         byte[] body = buildMultipartBody(boundary, signed, signature, bytes, filename, contentType);
 
+        // Dynamically choose API resource type endpoint based on content type
+        String resourceType = "image";
+        if (contentType != null && contentType.startsWith("video/")) {
+            resourceType = "video";
+        } else if (contentType != null && !contentType.startsWith("image/")) {
+            resourceType = "auto";
+        }
+
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.cloudinary.com/v1_1/" + config.getCloudName() + "/image/upload"))
-                .timeout(Duration.ofSeconds(30))
+                .uri(URI.create("https://api.cloudinary.com/v1_1/" + config.getCloudName() + "/" + resourceType + "/upload"))
+                .timeout(Duration.ofSeconds(45)) // slightly longer timeout for videos
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .POST(HttpRequest.BodyPublishers.ofByteArray(body))
                 .build();

@@ -24,4 +24,5 @@ public class ProductResponse {
     private Double averageRating;
     private boolean deleted;
     private java.time.LocalDateTime deletedAt;
+    private String videoUrl;
 }

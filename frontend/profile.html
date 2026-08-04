@@ -93,6 +93,47 @@
                     </form>
                 </div>
 
+                <!-- Section 4: Store / GST / Bank Settings (Admin Only) -->
+                <div class="profile-section-card" id="admin-store-settings-section" style="display: none;">
+                    <h3 class="profile-section-title">Store & Invoice Settings (Admin Only)</h3>
+                    <form id="admin-store-settings-form">
+                        <div class="form-group">
+                            <label for="store-name-input" class="form-label">Store / Company Name</label>
+                            <input type="text" id="store-name-input" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="store-address-input" class="form-label">Store Address</label>
+                            <textarea id="store-address-input" class="form-control" rows="3" required style="resize: vertical; font-family: inherit; padding: 10px;"></textarea>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px;">
+                            <div class="form-group">
+                                <label for="store-gst-input" class="form-label">GSTIN (GST Number)</label>
+                                <input type="text" id="store-gst-input" class="form-control" placeholder="E.g., 29AAAAA0000A1Z5">
+                            </div>
+                            <div class="form-group">
+                                <label for="store-pan-input" class="form-label">PAN Number</label>
+                                <input type="text" id="store-pan-input" class="form-control" placeholder="E.g., ABCDE1234F">
+                            </div>
+                        </div>
+                        <h4 style="font-size: 14px; font-weight: 700; margin-top: 20px; margin-bottom: 10px; border-top: 1px solid var(--border-color); padding-top: 15px;">Bank Payment Details</h4>
+                        <div class="form-group">
+                            <label for="store-bank-name-input" class="form-label">Bank Name</label>
+                            <input type="text" id="store-bank-name-input" class="form-control" placeholder="E.g., HDFC Bank">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-top: 10px;">
+                            <div class="form-group">
+                                <label for="store-bank-acc-input" class="form-label">Account Number</label>
+                                <input type="text" id="store-bank-acc-input" class="form-control" placeholder="E.g., 501002345678">
+                            </div>
+                            <div class="form-group">
+                                <label for="store-bank-ifsc-input" class="form-label">IFSC Code</label>
+                                <input type="text" id="store-bank-ifsc-input" class="form-control" placeholder="E.g., HDFC0000123">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="margin-top: 16px;">Save Store Details</button>
+                    </form>
+                </div>
+
                 <!-- Section 3: Shipping Addresses -->
                 <div class="profile-section-card" id="shipping-addresses-section">
                     <h3 class="profile-section-title">Saved Shipping Addresses</h3>

@@ -52,6 +52,9 @@ public class Order {
     @Column(name = "order_date", updatable = false)
     private LocalDateTime orderDate;
 
+    @Column(name = "estimated_delivery_date")
+    private LocalDateTime estimatedDeliveryDate;
+
     public void addItem(OrderItem item) {
         items.add(item);
         item.setOrder(this);

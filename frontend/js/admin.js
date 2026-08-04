@@ -112,7 +112,7 @@ function loadTabContent(panelId) {
 async function loadAdminProducts() {
     try {
         showLoader();
-        const products = await api.get('/api/products?includeDeleted=true', true);
+        const products = await api.get('/api/products?includeDeleted=true');
         productsTbody.innerHTML = '';
 
         const filteredProducts = products ? products.filter(p => p.deleted === showDeletedProducts) : [];
@@ -166,6 +166,8 @@ function openProductModal(product = null) {
     const isEdit = !!product;
     const title = isEdit ? 'Edit Product Details' : 'Add New Product';
     
+    let tempAdditionalImages = product ? [...(product.additionalImages || [])] : [];
+
     // Category select options
     const categoryOptions = categoriesCache.map(cat => 
         `<option value="${cat.id}" ${product && product.categoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`
@@ -203,7 +205,7 @@ function openProductModal(product = null) {
             </div>
 
             <div class="form-group">
-                <label class="form-label">Product Image</label>
+                <label class="form-label">Main Product Image</label>
                 <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
                     <input type="url" id="prod-img" class="form-control" value="${product?.imageUrl || ''}" placeholder="https://example.com/image.jpg" style="flex: 1;">
                     <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">OR</span>
@@ -217,6 +219,34 @@ function openProductModal(product = null) {
                         <img id="prod-upload-preview-img" src="${product?.imageUrl || ''}">
                     </div>
                     <span style="font-size: 12px; color: var(--text-muted);">Preview</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Additional Product Images</label>
+                <div id="additional-images-list" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
+                    <!-- Rendered dynamically -->
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="url" id="prod-additional-img-url" class="form-control" placeholder="https://example.com/additional-image.jpg" style="flex: 1;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-add-additional-url" style="height: 42px; padding: 0 16px;">Add URL</button>
+                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">OR</span>
+                    <label class="file-upload-custom-btn" style="margin: 0; padding: 10px 14px; font-size: 13px; height: auto; flex-shrink: 0;">
+                        <span>Upload File</span>
+                        <input type="file" id="prod-additional-file-upload" class="file-upload-input-hidden" accept="image/*">
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Product Video Showcase</label>
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+                    <input type="url" id="prod-video-url" class="form-control" value="${product?.videoUrl || ''}" placeholder="https://example.com/video.mp4" style="flex: 1;">
+                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">OR</span>
+                    <label class="file-upload-custom-btn" style="margin: 0; padding: 10px 14px; font-size: 13px; height: auto; flex-shrink: 0;">
+                        <span>Upload Video</span>
+                        <input type="file" id="prod-video-file-upload" class="file-upload-input-hidden" accept="video/*">
+                    </label>
                 </div>
             </div>
         </form>
@@ -234,6 +264,7 @@ function openProductModal(product = null) {
             const stockVal = parseInt(modalEl.querySelector('#prod-stock').value);
             const categoryIdVal = modalEl.querySelector('#prod-cat').value;
             const imageUrl = modalEl.querySelector('#prod-img').value.trim();
+            const videoUrl = modalEl.querySelector('#prod-video-url').value.trim();
 
             if (!name || isNaN(priceVal) || isNaN(stockVal) || !categoryIdVal) {
                 showToast('Please fill out all required fields.', 'error');
@@ -256,7 +287,9 @@ function openProductModal(product = null) {
                 price: priceVal,
                 stockQuantity: stockVal,
                 categoryId: parseInt(categoryIdVal),
-                imageUrl: imageUrl || null
+                imageUrl: imageUrl || null,
+                additionalImages: tempAdditionalImages,
+                videoUrl: videoUrl || null
             };
 
             try {
@@ -279,32 +312,89 @@ function openProductModal(product = null) {
         }
     });
 
-    // Wire up file upload
-    const fileInput = modalEl.querySelector('#prod-file-upload');
-    const imgUrlInput = modalEl.querySelector('#prod-img');
-    const previewContainer = modalEl.querySelector('#prod-upload-preview-container');
-    const previewImg = modalEl.querySelector('#prod-upload-preview-img');
+    // Wire up additional images management
+    const additionalImagesList = modalEl.querySelector('#additional-images-list');
+    const btnAddAdditionalUrl = modalEl.querySelector('#btn-add-additional-url');
+    const inputAdditionalUrl = modalEl.querySelector('#prod-additional-img-url');
+    const fileAdditionalInput = modalEl.querySelector('#prod-additional-file-upload');
 
-    if (fileInput) {
-        fileInput.addEventListener('change', async () => {
-            if (!fileInput.files || fileInput.files.length === 0) return;
-            const file = fileInput.files[0];
+    const renderTempAdditionalImages = () => {
+        if (!additionalImagesList) return;
+        additionalImagesList.innerHTML = '';
+        if (tempAdditionalImages.length === 0) {
+            additionalImagesList.innerHTML = '<span style="font-size: 13px; color: var(--text-muted); font-style: italic;">No additional images added.</span>';
+            return;
+        }
+        tempAdditionalImages.forEach((img, idx) => {
+            const imgBox = document.createElement('div');
+            imgBox.style.cssText = 'position: relative; width: 60px; height: 60px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center;';
+            imgBox.innerHTML = `
+                <img src="${img}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                <button type="button" class="btn-remove-additional-img" data-index="${idx}" style="position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--danger); color: #fff; border: none; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; font-weight: bold; padding: 0;">&times;</button>
+            `;
+            additionalImagesList.appendChild(imgBox);
+        });
+
+        // Bind remove button click
+        additionalImagesList.querySelectorAll('.btn-remove-additional-img').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(btn.getAttribute('data-index'));
+                tempAdditionalImages.splice(index, 1);
+                renderTempAdditionalImages();
+            });
+        });
+    };
+
+    // Initial render of additional images
+    renderTempAdditionalImages();
+
+    // Bind Add URL button
+    if (btnAddAdditionalUrl && inputAdditionalUrl) {
+        btnAddAdditionalUrl.addEventListener('click', () => {
+            const val = inputAdditionalUrl.value.trim();
+            if (val) {
+                if (!tempAdditionalImages.includes(val)) {
+                    tempAdditionalImages.push(val);
+                    renderTempAdditionalImages();
+                }
+                inputAdditionalUrl.value = '';
+            }
+        });
+    }
+
+    // Bind additional file upload input
+    if (fileAdditionalInput) {
+        fileAdditionalInput.addEventListener('change', async () => {
+            if (!fileAdditionalInput.files || fileAdditionalInput.files.length === 0) return;
+            const file = fileAdditionalInput.files[0];
             
-            // Client side validation
-            if (file.size > 2 * 1024 * 1024) {
-                showToast('File size is larger than 2MB.', 'error');
-                fileInput.value = '';
+            // Name validation
+            const name = modalEl.querySelector('#prod-name').value.trim();
+            if (!name) {
+                showToast('Please enter the Product Name first so we can organize media uploads.', 'warning');
+                fileAdditionalInput.value = '';
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                showToast('File size is larger than 10MB.', 'error');
+                fileAdditionalInput.value = '';
                 return;
             }
             const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
             if (!validTypes.includes(file.type)) {
                 showToast('Invalid file format. Please upload JPEG, PNG, or GIF.', 'error');
-                fileInput.value = '';
+                fileAdditionalInput.value = '';
                 return;
             }
 
+            const nextIndex = tempAdditionalImages.length + 2; // Image 1 is main, additional starts at Image 2
+
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('folder', name);
+            formData.append('publicId', `Image ${nextIndex}`);
 
             try {
                 showLoader();
@@ -320,8 +410,76 @@ function openProductModal(product = null) {
                     const errData = await uploadResponse.json();
                     throw new Error(errData?.message || 'Failed to upload photo.');
                 }
-                const body = await uploadResponse.json();
-                const fileUrl = (body.data || body).url; // unwrap ApiResponse (§8)
+                const bodyData = await uploadResponse.json();
+                const fileUrl = (bodyData.data || bodyData).url;
+
+                if (!tempAdditionalImages.includes(fileUrl)) {
+                    tempAdditionalImages.push(fileUrl);
+                    renderTempAdditionalImages();
+                }
+                showToast('Additional image uploaded successfully!', 'success');
+            } catch (err) {
+                showToast(err.message || 'Additional image upload failed.', 'error');
+            } finally {
+                hideLoader();
+                fileAdditionalInput.value = '';
+            }
+        });
+    }
+
+    // Wire up main file upload
+    const fileInput = modalEl.querySelector('#prod-file-upload');
+    const imgUrlInput = modalEl.querySelector('#prod-img');
+    const previewContainer = modalEl.querySelector('#prod-upload-preview-container');
+    const previewImg = modalEl.querySelector('#prod-upload-preview-img');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', async () => {
+            if (!fileInput.files || fileInput.files.length === 0) return;
+            const file = fileInput.files[0];
+            
+            // Name validation
+            const name = modalEl.querySelector('#prod-name').value.trim();
+            if (!name) {
+                showToast('Please enter the Product Name first so we can organize media uploads.', 'warning');
+                fileInput.value = '';
+                return;
+            }
+
+            // Client side validation
+            if (file.size > 10 * 1024 * 1024) {
+                showToast('File size is larger than 10MB.', 'error');
+                fileInput.value = '';
+                return;
+            }
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+            if (!validTypes.includes(file.type)) {
+                showToast('Invalid file format. Please upload JPEG, PNG, or GIF.', 'error');
+                fileInput.value = '';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('folder', name);
+            formData.append('publicId', 'Image 1');
+
+            try {
+                showLoader();
+                const token = localStorage.getItem('token');
+                const uploadResponse = await fetch(`${API_BASE}/api/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                if (!uploadResponse.ok) {
+                    const errData = await uploadResponse.json();
+                    throw new Error(errData?.message || 'Failed to upload photo.');
+                }
+                const bodyData = await uploadResponse.json();
+                const fileUrl = (bodyData.data || bodyData).url; // unwrap ApiResponse (§8)
 
                 imgUrlInput.value = fileUrl;
                 previewImg.src = fileUrl;
@@ -331,6 +489,70 @@ function openProductModal(product = null) {
                 showToast(err.message || 'Image upload failed.', 'error');
             } finally {
                 hideLoader();
+                fileInput.value = '';
+            }
+        });
+    }
+
+    // Wire up video file upload
+    const videoFileInput = modalEl.querySelector('#prod-video-file-upload');
+    const videoUrlInput = modalEl.querySelector('#prod-video-url');
+
+    if (videoFileInput) {
+        videoFileInput.addEventListener('change', async () => {
+            if (!videoFileInput.files || videoFileInput.files.length === 0) return;
+            const file = videoFileInput.files[0];
+
+            // Name validation
+            const name = modalEl.querySelector('#prod-name').value.trim();
+            if (!name) {
+                showToast('Please enter the Product Name first so we can organize media uploads.', 'warning');
+                videoFileInput.value = '';
+                return;
+            }
+
+            // Client side validation
+            if (file.size > 50 * 1024 * 1024) {
+                showToast('Video size exceeds the limit of 50MB.', 'error');
+                videoFileInput.value = '';
+                return;
+            }
+            const validTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+            if (!validTypes.includes(file.type)) {
+                showToast('Invalid video format. Please upload MP4, WebM, OGG, or MOV.', 'error');
+                videoFileInput.value = '';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('folder', name);
+            formData.append('publicId', 'Demo Video');
+
+            try {
+                showLoader();
+                const token = localStorage.getItem('token');
+                const uploadResponse = await fetch(`${API_BASE}/api/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                if (!uploadResponse.ok) {
+                    const errData = await uploadResponse.json();
+                    throw new Error(errData?.message || 'Failed to upload video.');
+                }
+                const bodyData = await uploadResponse.json();
+                const fileUrl = (bodyData.data || bodyData).url;
+
+                videoUrlInput.value = fileUrl;
+                showToast('Video uploaded successfully!', 'success');
+            } catch (err) {
+                showToast(err.message || 'Video upload failed.', 'error');
+            } finally {
+                hideLoader();
+                videoFileInput.value = '';
             }
         });
     }
@@ -376,7 +598,7 @@ function handleRestoreProduct(product) {
         async () => {
             try {
                 showLoader();
-                await api.put(`/api/products/${product.id}/restore`, {}, true);
+                await api.put(`/api/products/${product.id}/restore`, {});
                 showToast('Product restored successfully.', 'success');
                 await loadAdminProducts();
             } catch (err) {
@@ -644,6 +866,11 @@ async function loadAdminOrders() {
 // Open modal to view and update shipping details
 function openShippingModal(order) {
     const addr = order.shippingAddress || {};
+    let estDeliveryVal = '';
+    if (order.estimatedDeliveryDate) {
+        estDeliveryVal = order.estimatedDeliveryDate.substring(0, 10);
+    }
+
     const formHtml = `
         <form id="shipping-modal-form" style="display:flex; flex-direction:column; gap:16px;">
             <h4 style="margin: 0; font-size: 15px; color: var(--text-main); font-weight: 700; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Delivery Address</h4>
@@ -682,6 +909,10 @@ function openShippingModal(order) {
                     <input type="text" id="ship-tracking" class="form-control" value="${order.trackingNumber || ''}" placeholder="E.g., BD123456789">
                 </div>
             </div>
+            <div class="form-group">
+                <label for="ship-est-delivery" class="form-label">Estimated Delivery Date</label>
+                <input type="date" id="ship-est-delivery" class="form-control" value="${estDeliveryVal}">
+            </div>
         </form>
     `;
 
@@ -698,6 +929,7 @@ function openShippingModal(order) {
             const phone = modalEl.querySelector('#ship-phone').value.trim();
             const courierPartner = modalEl.querySelector('#ship-courier').value.trim();
             const trackingNumber = modalEl.querySelector('#ship-tracking').value.trim();
+            const estimatedDeliveryDate = modalEl.querySelector('#ship-est-delivery').value.trim();
 
             if (!line1 || !city || !state || !pincode || !phone) {
                 showToast('All delivery address fields are required.', 'error');
@@ -713,7 +945,8 @@ function openShippingModal(order) {
                     pincode,
                     phone,
                     courierPartner: courierPartner || null,
-                    trackingNumber: trackingNumber || null
+                    trackingNumber: trackingNumber || null,
+                    estimatedDeliveryDate: estimatedDeliveryDate || null
                 });
                 showToast(`Shipping details updated for Order #${order.orderId}.`, 'success');
                 loadAdminOrders();

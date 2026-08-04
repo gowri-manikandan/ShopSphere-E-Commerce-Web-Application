@@ -19,6 +19,7 @@ public class ProductMapper {
                 .averageRating(averageRating)
                 .deleted(p.isDeleted())
                 .deletedAt(p.getDeletedAt())
+                .videoUrl(p.getVideoUrl())
                 .build();
     }
 }

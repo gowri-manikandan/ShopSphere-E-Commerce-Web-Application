@@ -20,26 +20,42 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UploadController {
 
-    private static final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+    private static final long MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+    private static final long MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 
     private final ImageStorageService imageStorageService;
-    private final SecurityUtils securityUtils;
 
     @PostMapping
-    public ResponseEntity<Map<String, String>> uploadFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<Map<String, String>> uploadFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "folder", required = false) String folder,
+            @RequestParam(value = "publicId", required = false) String publicId) {
         if (file.isEmpty()) {
             throw new BadRequestException("Please select a file to upload");
         }
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new BadRequestException("File size exceeds limit of 2MB");
-        }
+
         String contentType = file.getContentType();
-        if (contentType == null || !(contentType.equals("image/jpeg") || contentType.equals("image/png")
-                || contentType.equals("image/gif") || contentType.equals("image/jpg"))) {
-            throw new BadRequestException("Only JPEG, PNG, and GIF image types are allowed");
+        boolean isVideo = contentType != null && contentType.startsWith("video/");
+
+        if (isVideo) {
+            if (file.getSize() > MAX_VIDEO_SIZE) {
+                throw new BadRequestException("Video size exceeds limit of 50MB");
+            }
+            if (!(contentType.equals("video/mp4") || contentType.equals("video/webm")
+                    || contentType.equals("video/ogg") || contentType.equals("video/quicktime"))) {
+                throw new BadRequestException("Only MP4, WebM, OGG, and MOV video types are allowed");
+            }
+        } else {
+            if (file.getSize() > MAX_IMAGE_SIZE) {
+                throw new BadRequestException("Image size exceeds limit of 10MB");
+            }
+            if (contentType == null || !(contentType.equals("image/jpeg") || contentType.equals("image/png")
+                    || contentType.equals("image/gif") || contentType.equals("image/jpg"))) {
+                throw new BadRequestException("Only JPEG, PNG, and GIF image types are allowed");
+            }
         }
 
-        String url = imageStorageService.store(file, securityUtils.getCurrentUser());
+        String url = imageStorageService.store(file, folder, publicId);
         return ResponseEntity.ok(Map.of("url", url));
     }
 }

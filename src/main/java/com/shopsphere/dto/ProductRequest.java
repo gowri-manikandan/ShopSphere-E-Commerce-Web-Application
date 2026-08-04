@@ -27,4 +27,6 @@ public class ProductRequest {
 
     @NotNull(message = "Category id is required")
     private Long categoryId;
+
+    private String videoUrl;
 }

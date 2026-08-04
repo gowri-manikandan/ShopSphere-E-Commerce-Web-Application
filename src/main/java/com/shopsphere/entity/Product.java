@@ -46,6 +46,9 @@ public class Product {
     @Builder.Default
     private java.util.List<String> additionalImages = new java.util.ArrayList<>();
 
+    @Column(name = "video_url", length = 500)
+    private String videoUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;

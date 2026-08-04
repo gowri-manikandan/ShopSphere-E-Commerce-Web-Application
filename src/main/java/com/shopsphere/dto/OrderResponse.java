@@ -24,6 +24,7 @@ public class OrderResponse {
     private String transactionRef;
     private String courierPartner;
     private String trackingNumber;
+    private LocalDateTime estimatedDeliveryDate;
     private ShippingAddress shippingAddress;
 
     @Data

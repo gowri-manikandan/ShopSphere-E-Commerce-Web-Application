@@ -29,6 +29,7 @@ public class OrderMapper {
                 .transactionRef(payment != null ? payment.getTransactionRef() : null)
                 .courierPartner(order.getCourierPartner())
                 .trackingNumber(order.getTrackingNumber())
+                .estimatedDeliveryDate(order.getEstimatedDeliveryDate())
                 .shippingAddress(toShippingAddress(order))
                 .build();
     }

@@ -17,4 +17,5 @@ public class ShippingInfoRequest {
     private String phone;
     private String courierPartner;
     private String trackingNumber;
+    private String estimatedDeliveryDate;
 }

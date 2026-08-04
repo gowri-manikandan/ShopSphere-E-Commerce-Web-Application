@@ -82,6 +82,12 @@ async function initProfile() {
             if (shippingSection) {
                 shippingSection.remove();
             }
+            const storeSettingsSection = document.getElementById('admin-store-settings-section');
+            if (storeSettingsSection) {
+                storeSettingsSection.style.display = 'block';
+                await loadStoreSettings();
+                setupStoreSettingsForm();
+            }
         } else {
             document.body.classList.remove('is-admin');
             await loadAddresses();
@@ -368,6 +374,7 @@ function setupAvatarUpload() {
 
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('folder', 'User Profile Pictures');
 
         try {
             showLoader();
@@ -408,6 +415,56 @@ function setupAvatarUpload() {
             showToast(err.message || 'Failed to upload image.', 'error');
         } finally {
             avatarUploadInput.value = '';
+            hideLoader();
+        }
+    });
+}
+
+async function loadStoreSettings() {
+    try {
+        const settings = await api.get('/api/store-settings');
+        if (settings) {
+            document.getElementById('store-name-input').value = settings.storeName || '';
+            document.getElementById('store-address-input').value = settings.address || '';
+            document.getElementById('store-gst-input').value = settings.gstNumber || '';
+            document.getElementById('store-pan-input').value = settings.pan || '';
+            document.getElementById('store-bank-name-input').value = settings.bankName || '';
+            document.getElementById('store-bank-acc-input').value = settings.bankAccountNumber || '';
+            document.getElementById('store-bank-ifsc-input').value = settings.bankIfsc || '';
+        }
+    } catch (err) {
+        console.error("Failed to load store settings:", err);
+    }
+}
+
+function setupStoreSettingsForm() {
+    const form = document.getElementById('admin-store-settings-form');
+    if (!form) return;
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const storeName = document.getElementById('store-name-input').value.trim();
+        const address = document.getElementById('store-address-input').value.trim();
+        const gstNumber = document.getElementById('store-gst-input').value.trim();
+        const pan = document.getElementById('store-pan-input').value.trim();
+        const bankName = document.getElementById('store-bank-name-input').value.trim();
+        const bankAccountNumber = document.getElementById('store-bank-acc-input').value.trim();
+        const bankIfsc = document.getElementById('store-bank-ifsc-input').value.trim();
+
+        try {
+            showLoader();
+            await api.put('/api/store-settings', {
+                storeName,
+                address,
+                gstNumber: gstNumber || null,
+                pan: pan || null,
+                bankName: bankName || null,
+                bankAccountNumber: bankAccountNumber || null,
+                bankIfsc: bankIfsc || null
+            });
+            showToast('Store settings saved successfully.', 'success');
+        } catch (err) {
+            showToast(err.message || 'Failed to save store settings.', 'error');
+        } finally {
             hideLoader();
         }
     });

@@ -92,7 +92,7 @@ function render(o) {
     const subtotal = o.items.reduce((a, i) => a + Number(i.subtotal), 0);
     const addr = o.shippingAddress;
     const paid = o.paymentStatus === 'SUCCESS';
-    const estDelivery = new Date(new Date(o.orderDate).getTime() + 5 * 24 * 60 * 60 * 1000);
+    const estDelivery = o.estimatedDeliveryDate ? new Date(o.estimatedDeliveryDate) : new Date(new Date(o.orderDate).getTime() + 5 * 24 * 60 * 60 * 1000);
 
     const itemsHtml = o.items.map(i => `
         <div class="od-item">
@@ -231,25 +231,337 @@ function renderTimeline(o, estDelivery) {
 }
 
 // Client-side printable invoice (save-as-PDF via the browser print dialog).
-function downloadInvoice(o) {
-    const win = window.open('', '_blank', 'width=800,height=900');
+async function downloadInvoice(o) {
+    let settings = null;
+    try {
+        settings = await api.get('/api/store-settings');
+    } catch (e) {
+        console.error("Failed to load store settings for invoice", e);
+    }
+
+    const storeName = settings?.storeName || 'ShopSphere';
+    const storeAddress = settings?.address || '123 E-Commerce Boulevard, Tech Park, Bangalore, Karnataka - 560001';
+    const storeGst = settings?.gstNumber || '29AAAAA0000A1Z5';
+    const storePan = settings?.pan || 'ABCDE1234F';
+    const bankName = settings?.bankName || 'State Bank of India';
+    const bankAcc = settings?.bankAccountNumber || '333344445555';
+    const bankIfsc = settings?.bankIfsc || 'SBIN0001234';
+
+    const win = window.open('', '_blank', 'width=850,height=950');
     if (!win) { showToast('Allow pop-ups to download the invoice.', 'error'); return; }
-    const rows = o.items.map(i => `<tr>
-        <td>${esc(i.productName)}</td><td style="text-align:center;">${i.quantity}</td>
-        <td style="text-align:right;">${inr(i.price)}</td><td style="text-align:right;">${inr(i.subtotal)}</td></tr>`).join('');
+
+    const rows = o.items.map((i, idx) => {
+        const price = Number(i.price || 0);
+        const subtotal = Number(i.subtotal || 0);
+        const taxableUnit = price / 1.18;
+        const cgstUnit = taxableUnit * 0.09;
+        const sgstUnit = taxableUnit * 0.09;
+        const totalTaxable = taxableUnit * i.quantity;
+        const totalCgst = cgstUnit * i.quantity;
+        const totalSgst = sgstUnit * i.quantity;
+        const totalGst = totalCgst + totalSgst;
+
+        return `<tr>
+            <td style="text-align:center;">${idx + 1}</td>
+            <td><strong>${esc(i.productName)}</strong></td>
+            <td style="text-align:right;">${inr(taxableUnit)}</td>
+            <td style="text-align:center;">${i.quantity}</td>
+            <td style="text-align:right;">${inr(totalCgst)} <span class="tax-pct">(9%)</span></td>
+            <td style="text-align:right;">${inr(totalSgst)} <span class="tax-pct">(9%)</span></td>
+            <td style="text-align:right;">${inr(totalGst)}</td>
+            <td style="text-align:right; font-weight: 600;">${inr(subtotal)}</td>
+        </tr>`;
+    }).join('');
+
+    const totalBill = Number(o.totalAmount || 0);
+    const totalTaxableVal = totalBill / 1.18;
+    const cgstAmt = totalTaxableVal * 0.09;
+    const sgstAmt = totalTaxableVal * 0.09;
+    const gstAmt = cgstAmt + sgstAmt;
+
     const a = o.shippingAddress;
-    win.document.write(`<!DOCTYPE html><html><head><title>Invoice #${o.orderId}</title>
-        <style>body{font-family:Arial,sans-serif;padding:32px;color:#111}h1{margin:0 0 4px}
-        table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border-bottom:1px solid #ddd;padding:8px}
-        th{text-align:left;background:#f5f5f5}.tot{text-align:right;font-weight:700;font-size:16px;margin-top:12px}
-        .muted{color:#666;font-size:13px}</style></head><body>
-        <h1>ShopSphere</h1><p class="muted">Tax Invoice — Order #${o.orderId}</p>
-        <p class="muted">Date: ${fmtDateTime(o.orderDate)} · Status: ${o.status} · Payment: ${o.paymentStatus} (${o.paymentMethod || '—'})</p>
-        ${a ? `<p class="muted">Ship to: ${esc(a.name || '')}, ${esc(a.line1)}, ${esc(a.city)}${a.state ? ', ' + esc(a.state) : ''} - ${esc(a.pincode)}</p>` : ''}
-        <table><thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Unit</th><th style="text-align:right;">Total</th></tr></thead>
-        <tbody>${rows}</tbody></table>
-        <p class="tot">Grand Total: ${inr(o.totalAmount)}</p>
-        <p class="muted">Transaction Ref: ${esc(o.transactionRef || '—')}</p>
-        <script>window.onload=function(){window.print();}<\/script></body></html>`);
+    
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+    <title>Tax Invoice - #${o.orderId}</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 30px;
+            color: #333;
+            line-height: 1.4;
+            font-size: 14px;
+        }
+        .invoice-box {
+            max-width: 800px;
+            margin: auto;
+        }
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+        }
+        .header-table td {
+            border: none;
+            padding: 0;
+            vertical-align: top;
+        }
+        .store-logo {
+            font-size: 28px;
+            font-weight: 800;
+            color: #1a1a1a;
+            margin: 0 0 6px 0;
+            letter-spacing: -0.5px;
+        }
+        .store-details {
+            font-size: 12px;
+            color: #555;
+            max-width: 320px;
+        }
+        .invoice-title-box {
+            text-align: right;
+        }
+        .invoice-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #444;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .invoice-meta {
+            font-size: 13px;
+            color: #444;
+            display: inline-block;
+            text-align: left;
+        }
+        .invoice-meta div {
+            margin-bottom: 4px;
+        }
+        .invoice-meta strong {
+            color: #111;
+        }
+        .divider {
+            border-top: 2px solid #333;
+            margin: 15px 0;
+        }
+        .address-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+        }
+        .address-table td {
+            border: 1px solid #eaeaea;
+            padding: 15px;
+            vertical-align: top;
+            background: #fafafa;
+            border-radius: 4px;
+        }
+        .address-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #777;
+            text-transform: uppercase;
+            margin: 0 0 8px 0;
+            letter-spacing: 0.5px;
+        }
+        .address-text {
+            font-size: 13px;
+            color: #333;
+            margin: 0;
+            line-height: 1.5;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .items-table th {
+            background: #333;
+            color: #fff;
+            text-transform: uppercase;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 10px;
+            border: 1px solid #333;
+            letter-spacing: 0.5px;
+        }
+        .items-table td {
+            padding: 12px 10px;
+            border: 1px solid #eaeaea;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+        .items-table tr:nth-child(even) {
+            background: #fcfcfc;
+        }
+        .tax-pct {
+            font-size: 10px;
+            color: #888;
+            font-weight: normal;
+        }
+        .summary-table {
+            width: 320px;
+            float: right;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .summary-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #eaeaea;
+            font-size: 13px;
+        }
+        .summary-table tr.grand-total td {
+            border-top: 2px solid #333;
+            border-bottom: 2px solid #333;
+            font-weight: 700;
+            font-size: 16px;
+            color: #000;
+            background: #fafafa;
+        }
+        .bank-details-box {
+            width: 420px;
+            float: left;
+            border: 1px solid #eaeaea;
+            padding: 15px;
+            border-radius: 4px;
+            background: #fafafa;
+            margin-bottom: 30px;
+        }
+        .bank-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #555;
+            text-transform: uppercase;
+            margin: 0 0 8px 0;
+        }
+        .bank-details-row {
+            font-size: 12px;
+            margin-bottom: 4px;
+            color: #444;
+        }
+        .bank-details-row span {
+            display: inline-block;
+            width: 120px;
+            font-weight: 600;
+            color: #666;
+        }
+        .clear {
+            clear: both;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+            border-top: 1px solid #eaeaea;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-box">
+        <table class="header-table">
+            <tr>
+                <td>
+                    <div class="store-logo">${esc(storeName)}</div>
+                    <div class="store-details">
+                        <p style="margin:0 0 8px 0; font-weight:600; font-size:13px; color:#333;">${esc(storeName)}</p>
+                        <p style="margin:0 0 6px 0; line-height:1.5;">${esc(storeAddress)}</p>
+                        <p style="margin:4px 0 0 0;"><strong>GSTIN:</strong> ${esc(storeGst)}</p>
+                        <p style="margin:2px 0 0 0;"><strong>PAN:</strong> ${esc(storePan)}</p>
+                    </div>
+                </td>
+                <td class="invoice-title-box">
+                    <div class="invoice-title">Tax Invoice</div>
+                    <div class="invoice-meta">
+                        <div><strong>Invoice No:</strong> #${o.orderId}</div>
+                        <div><strong>Date:</strong> ${fmtDateTime(o.orderDate)}</div>
+                        <div><strong>Payment Method:</strong> ${esc(o.paymentMethod || '—')}</div>
+                        <div><strong>Payment Status:</strong> ${esc(o.paymentStatus)}</div>
+                        <div><strong>Transaction ID:</strong> <span style="font-family:monospace; font-size:11px;">${esc(o.transactionRef || '—')}</span></div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <div class="divider"></div>
+
+        <table class="address-table">
+            <tr>
+                <td>
+                    <div class="address-title">Billed & Shipped To</div>
+                    <div class="address-text">
+                        <strong>${esc(a?.name || '')}</strong><br>
+                        ${esc(a?.line1 || '')}<br>
+                        ${esc(a?.city || '')}${a?.state ? ', ' + esc(a?.state) : ''} - ${esc(a?.pincode || '')}<br>
+                        India<br>
+                        ${a?.phone ? `Phone: ${esc(a.phone)}` : ''}
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%; text-align:center;">#</th>
+                    <th style="width: 40%;">Item Description</th>
+                    <th style="width: 12%; text-align:right;">Taxable Value</th>
+                    <th style="width: 8%; text-align:center;">Qty</th>
+                    <th style="width: 12%; text-align:right;">CGST</th>
+                    <th style="width: 12%; text-align:right;">SGST</th>
+                    <th style="width: 10%; text-align:right;">Total GST</th>
+                    <th style="width: 15%; text-align:right;">Net Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows}
+            </tbody>
+        </table>
+
+        <div class="bank-details-box">
+            <div class="bank-title">Bank Transfer Details</div>
+            <div class="bank-details-row"><span>Beneficiary:</span> ${esc(storeName)}</div>
+            <div class="bank-details-row"><span>Bank Name:</span> ${esc(bankName)}</div>
+            <div class="bank-details-row"><span>Account No:</span> ${esc(bankAcc)}</div>
+            <div class="bank-details-row"><span>IFSC Code:</span> ${esc(bankIfsc)}</div>
+        </div>
+
+        <table class="summary-table">
+            <tr>
+                <td>Taxable Value (Subtotal)</td>
+                <td style="text-align:right;">${inr(totalTaxableVal)}</td>
+            </tr>
+            <tr>
+                <td>CGST (9%)</td>
+                <td style="text-align:right;">${inr(cgstAmt)}</td>
+            </tr>
+            <tr>
+                <td>SGST (9%)</td>
+                <td style="text-align:right;">${inr(sgstAmt)}</td>
+            </tr>
+            <tr>
+                <td>Total Tax Amount (18%)</td>
+                <td style="text-align:right;">${inr(gstAmt)}</td>
+            </tr>
+            <tr class="grand-total">
+                <td>Grand Total</td>
+                <td style="text-align:right;">${inr(totalBill)}</td>
+            </tr>
+        </table>
+
+        <div class="clear"></div>
+
+        <div class="footer">
+            <p style="margin: 0 0 6px 0; font-weight:600; color:#444;">Thank you for your business!</p>
+            <p style="margin: 0; font-size:11px; color:#999;">This is a computer-generated tax invoice and does not require a physical signature.</p>
+        </div>
+    </div>
+    <script>window.onload=function(){window.print();}<\/script>
+</body>
+</html>`);
     win.document.close();
 }

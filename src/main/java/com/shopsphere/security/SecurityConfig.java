@@ -68,6 +68,9 @@ public class SecurityConfig {
                 .requestMatchers("/ws/**").permitAll()
                 // Avatar upload requires a logged-in user (explicit; also enforced in-code)
                 .requestMatchers(HttpMethod.POST, "/api/upload").authenticated()
+                // Store settings access control
+                .requestMatchers(HttpMethod.GET, "/api/store-settings").permitAll()
+                .requestMatchers(HttpMethod.PUT, "/api/store-settings").hasRole("ADMIN")
                 // Admin-only endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
