@@ -39,8 +39,9 @@ public class ProductController {
     }
 
     @PutMapping("/{id}/restore")
-    public ResponseEntity<ProductResponse> restore(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.restore(id));
+    public ResponseEntity<ProductResponse> restore(@PathVariable Long id,
+                                                   @RequestParam(required = false) Long categoryId) {
+        return ResponseEntity.ok(productService.restore(id, categoryId));
     }
 
     private boolean isUserAdmin() {

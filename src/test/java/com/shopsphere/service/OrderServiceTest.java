@@ -268,6 +268,43 @@ class OrderServiceTest {
     }
 
     @Test
+    void getMyOrderById_ownOrder_returnsOrder() {
+        Product p = product(10L, "100.00", 5);
+        Order order = placedOrder(LocalDateTime.now().minusHours(1), p, 2);
+        when(securityUtils.getCurrentUser()).thenReturn(user);
+        when(orderRepository.findById(100L)).thenReturn(Optional.of(order));
+
+        OrderResponse res = orderService.getMyOrderById(100L);
+        assertThat(res.getOrderId()).isEqualTo(100L);
+    }
+
+    @Test
+    void getMyOrderById_notOwnedByUser_customer_throwsBadRequest() {
+        Product p = product(10L, "100.00", 5);
+        Order order = placedOrder(LocalDateTime.now().minusHours(1), p, 2);
+        order.setUser(User.builder().id(2L).email("other@x.com").name("Other").role(Role.CUSTOMER).build());
+        when(securityUtils.getCurrentUser()).thenReturn(user); // user has id=1L and role=CUSTOMER
+        when(orderRepository.findById(100L)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.getMyOrderById(100L))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("your own orders");
+    }
+
+    @Test
+    void getMyOrderById_notOwnedByUser_admin_returnsOrder() {
+        Product p = product(10L, "100.00", 5);
+        Order order = placedOrder(LocalDateTime.now().minusHours(1), p, 2);
+        order.setUser(User.builder().id(2L).email("other@x.com").name("Other").role(Role.CUSTOMER).build());
+        User adminUser = User.builder().id(99L).email("admin@x.com").name("Admin").role(Role.ADMIN).build();
+        when(securityUtils.getCurrentUser()).thenReturn(adminUser);
+        when(orderRepository.findById(100L)).thenReturn(Optional.of(order));
+
+        OrderResponse res = orderService.getMyOrderById(100L);
+        assertThat(res.getOrderId()).isEqualTo(100L);
+    }
+
+    @Test
     void doCancelOrder_notOwnedByUser_throwsBadRequest() {
         Product p = product(10L, "100.00", 5);
         Order order = placedOrder(LocalDateTime.now().minusHours(1), p, 2);

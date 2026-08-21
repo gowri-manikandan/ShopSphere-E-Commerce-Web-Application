@@ -3,111 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Shop the latest products in electronics, fashion, and books on Sri Maruthi textiles - Your modern e-commerce destination.">
-    <title>Sri Maruthi textiles — E-Commerce Storefront</title>
-    <!-- Stylesheet -->
+    <meta name="description" content="Shop the latest products in electronics, fashion, and textiles on Sri Maruthi textiles - Premium Quality. Pure Comfort.">
+    <title>Sri Maruthi textiles — Premium Quality. Pure Comfort.</title>
+    <!-- Favicon & Fonts -->
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
     <link rel="stylesheet" href="css/styles.css">
-    <style>
-        /* ✨ Ask AI semantic-search panel */
-        .ai-search-panel { position: relative; border-radius: 16px; padding: 20px 22px; margin-bottom: 20px;
-            background: linear-gradient(135deg, rgba(99,102,241,.09), rgba(59,130,246,.05)); border: 1px solid rgba(99,102,241,.28); }
-        .ai-search-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
-        .ai-spark { font-size: 22px; line-height: 1; filter: drop-shadow(0 1px 5px rgba(99,102,241,.45)); }
-        .ai-search-title { margin: 0; font-size: 16px; font-weight: 800;
-            background: linear-gradient(90deg, #6366f1, #3b82f6); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .ai-search-sub { margin: 3px 0 0; font-size: 13px; color: var(--text-muted); }
-        .ai-search-inputrow { display: flex; gap: 10px; }
-        .ai-search-inputrow .form-control { flex: 1; }
-        .ai-search-btn { white-space: nowrap; background: linear-gradient(90deg, #6366f1, #3b82f6); border: none; }
-        .ai-search-btn:hover { filter: brightness(1.06); }
-        .ai-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-        .ai-chip { border: 1px solid var(--border-color); background: #fff; border-radius: 999px; padding: 6px 12px;
-            font-size: 13px; cursor: pointer; color: var(--text-main); transition: all .15s ease; }
-        .ai-chip:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
-        .ai-results-header { display: flex; align-items: center; justify-content: space-between; gap: 12px;
-            margin-bottom: 16px; padding: 10px 14px; border-radius: 10px;
-            background: rgba(99,102,241,.06); border: 1px solid rgba(99,102,241,.2); }
-        .ai-results-label { font-size: 14px; color: var(--text-main); }
-        @media (max-width: 600px) { .ai-search-inputrow { flex-direction: column; } }
-    </style>
 </head>
 <body>
 
-    <!-- Shared Navigation Bar -->
+    <!-- Shared Dynamic Top Announcement Bar & Navigation Bar -->
     <header id="navbar-container"></header>
 
     <!-- Main Content Area -->
-    <main class="container">
+    <main class="container catalog-page-main">
         <div class="catalog-container">
             
-            <!-- Category Sidebar Filter -->
+            <!-- Category Sidebar Filter Panel -->
             <aside class="catalog-sidebar">
-                <h4 class="sidebar-title">Categories</h4>
-                <div id="category-list" class="category-list">
-                    <!-- Categories will be dynamically loaded here -->
+                <!-- Categories -->
+                <div class="sidebar-section">
+                    <h4 class="sidebar-title">CATEGORIES</h4>
+                    <div id="category-list" class="category-list">
+                        <!-- Categories dynamically loaded with "All Products" active -->
+                    </div>
                 </div>
 
-                <h4 class="sidebar-title" style="margin-top: 28px;">Price Range</h4>
-                <div class="price-filter">
-                    <input type="number" id="min-price-input" class="form-control" placeholder="Min ₹" min="0" aria-label="Minimum price">
-                    <span class="price-filter-sep">–</span>
-                    <input type="number" id="max-price-input" class="form-control" placeholder="Max ₹" min="0" aria-label="Maximum price">
+                <!-- Price Range -->
+                <div class="sidebar-section">
+                    <h4 class="sidebar-title">PRICE RANGE</h4>
+                    <div class="price-slider-wrap">
+                        <div class="price-slider-track" id="price-slider-track">
+                            <div class="price-slider-fill" id="price-slider-fill"></div>
+                            <div class="slider-thumb left" id="slider-thumb-min" tabindex="0" role="slider" aria-label="Minimum price" aria-valuemin="0" aria-valuemax="50000" aria-valuenow="0"></div>
+                            <div class="slider-thumb right" id="slider-thumb-max" tabindex="0" role="slider" aria-label="Maximum price" aria-valuemin="0" aria-valuemax="50000" aria-valuenow="50000"></div>
+                        </div>
+                    </div>
+                    <div class="price-filter">
+                        <div class="price-input-box">
+                            <input type="number" id="min-price-input" class="price-control" placeholder="Min ₹" min="0" aria-label="Minimum price">
+                        </div>
+                        <span class="price-filter-sep">–</span>
+                        <div class="price-input-box">
+                            <input type="number" id="max-price-input" class="price-control" placeholder="Max ₹" min="0" aria-label="Maximum price">
+                        </div>
+                    </div>
                 </div>
 
-                <h4 class="sidebar-title" style="margin-top: 28px;">Minimum Rating</h4>
-                <div id="rating-filter" class="rating-filter">
-                    <button type="button" class="rating-option active" data-min-rating="0">Any rating</button>
-                    <button type="button" class="rating-option" data-min-rating="4">★ 4 &amp; up</button>
-                    <button type="button" class="rating-option" data-min-rating="3">★ 3 &amp; up</button>
-                    <button type="button" class="rating-option" data-min-rating="2">★ 2 &amp; up</button>
-                    <button type="button" class="rating-option" data-min-rating="1">★ 1 &amp; up</button>
+                <!-- Minimum Rating -->
+                <div class="sidebar-section">
+                    <h4 class="sidebar-title">MINIMUM RATING</h4>
+                    <div id="rating-filter" class="rating-filter-grid">
+                        <button type="button" class="rating-grid-btn" data-min-rating="4">★ 4 &amp; up</button>
+                        <button type="button" class="rating-grid-btn" data-min-rating="3">★ 3 &amp; up</button>
+                        <button type="button" class="rating-grid-btn" data-min-rating="2">★ 2 &amp; up</button>
+                        <button type="button" class="rating-grid-btn" data-min-rating="1">★ 1 &amp; up</button>
+                    </div>
                 </div>
 
-                <button type="button" id="clear-filters-btn" class="btn btn-secondary btn-sm" style="margin-top: 24px; width: 100%;">Clear Filters</button>
+                <!-- Clear Filters Button -->
+                <button type="button" id="clear-filters-btn" class="btn btn-clear-sidebar">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                    Clear Filters
+                </button>
             </aside>
             
             <!-- Catalog Main Panel -->
             <section class="catalog-main">
                 
-                <!-- Search & Filters Header -->
-                <div class="search-bar-container">
-                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.637 10.637z" />
-                    </svg>
-                    <input type="text" id="search-input" class="form-control search-input" placeholder="Search for products, brands or models...">
-                </div>
-
-                <!-- ✨ Ask AI — natural-language semantic search (§6) -->
+                <!-- ✨ Ask AI Banner Panel -->
                 <div class="ai-search-panel" id="ai-search-panel">
-                    <div class="ai-search-head">
-                        <span class="ai-spark">✨</span>
-                        <div>
-                            <h3 class="ai-search-title">Ask AI</h3>
-                            <p class="ai-search-sub">Describe what you want in plain English — our AI finds the closest products.</p>
+                    <div class="ai-search-left-content">
+                        <div class="ai-search-head">
+                            <span class="ai-spark-badge">✨</span>
+                            <div class="ai-title-wrap">
+                                <div class="ai-title-row">
+                                    <h3 class="ai-search-title">Ask AI</h3>
+                                    <span class="ai-beta-badge">BETA</span>
+                                </div>
+                                <p class="ai-search-sub">Find exactly what you need. Our AI recommends the best for you.</p>
+                            </div>
+                        </div>
+                        <div class="ai-search-inputrow">
+                            <input type="text" id="ai-search-input" class="form-control ai-search-input" autocomplete="off"
+                                   placeholder="e.g. a gift for runner under ₹500">
+                            <button type="button" id="ai-search-btn" class="btn btn-primary ai-search-btn">Ask AI</button>
+                        </div>
+                        <div class="ai-chips">
+                            <button type="button" class="ai-chip" data-q="a gift for runner">
+                                <span class="chip-icon">🔍</span> gift for runner
+                            </button>
+                            <button type="button" class="ai-chip" data-q="upgrade my kitchen">
+                                <span class="chip-icon">🏠</span> upgrade my kitchen
+                            </button>
+                            <button type="button" class="ai-chip" data-q="budget headphones">
+                                <span class="chip-icon">🎧</span> budget headphones
+                            </button>
+                            <button type="button" class="ai-chip" data-q="book to relax">
+                                <span class="chip-icon">📖</span> book to relax
+                            </button>
+                            <button type="button" class="ai-chip" data-q="office essentials">
+                                <span class="chip-icon">💼</span> office essentials
+                            </button>
                         </div>
                     </div>
-                    <div class="ai-search-inputrow">
-                        <input type="text" id="ai-search-input" class="form-control" autocomplete="off"
-                               placeholder="e.g. a thoughtful gift for someone who loves running">
-                        <button type="button" id="ai-search-btn" class="btn btn-primary ai-search-btn">Ask AI</button>
-                    </div>
-                    <div class="ai-chips">
-                        <button type="button" class="ai-chip" data-q="a thoughtful gift for a runner">🎁 gift for a runner</button>
-                        <button type="button" class="ai-chip" data-q="something to upgrade my kitchen">🍳 upgrade my kitchen</button>
-                        <button type="button" class="ai-chip" data-q="affordable wireless headphones">🎧 budget headphones</button>
-                        <button type="button" class="ai-chip" data-q="a good book to relax with">📚 book to relax</button>
+                    <div class="ai-robot-mascot-wrap">
+                        <img src="images/ai-robot.jpg" alt="AI Robot Assistant" class="ai-robot-img">
                     </div>
                 </div>
 
-                <!-- AI results header (shown only while AI results are displayed) -->
+                <!-- AI Results Feedback Bar -->
                 <div id="ai-results-header" class="ai-results-header" style="display:none;">
                     <span id="ai-results-label" class="ai-results-label"></span>
                     <button type="button" id="ai-clear-btn" class="btn btn-secondary btn-sm">← Back to catalog</button>
                 </div>
 
+                <!-- Top Picks Header -->
+                <div class="catalog-section-header">
+                    <h3 class="catalog-section-title">Top Picks for You</h3>
+                    <a href="javascript:void(0)" id="view-all-link" class="view-all-link">View all</a>
+                </div>
+
                 <!-- Product Grid -->
                 <div id="product-grid" class="product-grid">
-                    <!-- Products or skeletons will be loaded here -->
+                    <!-- Dynamic Product Cards -->
                 </div>
 
                 <!-- Empty State -->
@@ -118,19 +142,67 @@
                         </svg>
                     </div>
                     <h3 class="empty-title">No products found</h3>
-                    <p class="empty-desc">We couldn't find any products matching your search or category selection. Try refining your keywords.</p>
+                    <p class="empty-desc">We couldn't find any products matching your selection. Try adjusting your filters.</p>
                     <button id="reset-filters-btn" class="btn btn-primary">View All Products</button>
                 </div>
                 
             </section>
         </div>
+
+        <!-- Value Propositions Strip -->
+        <section class="value-props-strip">
+            <div class="value-prop-card">
+                <div class="value-prop-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="22" height="22">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.25V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V14.25m11.25-6.75h2.25M3 14.25h11.25" />
+                    </svg>
+                </div>
+                <div class="value-prop-text">
+                    <h5 class="value-prop-title">Free Shipping</h5>
+                    <p class="value-prop-sub">On orders above ₹999</p>
+                </div>
+            </div>
+            <div class="value-prop-card">
+                <div class="value-prop-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="22" height="22">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                    </svg>
+                </div>
+                <div class="value-prop-text">
+                    <h5 class="value-prop-title">Quality Assured</h5>
+                    <p class="value-prop-sub">100% Premium Products</p>
+                </div>
+            </div>
+            <div class="value-prop-card">
+                <div class="value-prop-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="22" height="22">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                </div>
+                <div class="value-prop-text">
+                    <h5 class="value-prop-title">Easy Returns</h5>
+                    <p class="value-prop-sub">7 Days Return Policy</p>
+                </div>
+            </div>
+            <div class="value-prop-card">
+                <div class="value-prop-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="22" height="22">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                    </svg>
+                </div>
+                <div class="value-prop-text">
+                    <h5 class="value-prop-title">24/7 Support</h5>
+                    <p class="value-prop-sub">We're here to help</p>
+                </div>
+            </div>
+        </section>
     </main>
 
-    <!-- Realtime (live stock) — classic scripts expose window.SockJS / window.StompJs -->
+    <!-- Realtime (live stock) -->
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
 
     <!-- Main JavaScript Logic -->
-    <script type="module" src="js/catalog.js?v=3"></script>
+    <script type="module" src="js/catalog.js?v=4"></script>
 </body>
 </html>

@@ -202,7 +202,7 @@ public class OrderService {
     public OrderResponse getMyOrderById(Long orderId) {
         User user = securityUtils.getCurrentUser();
         Order order = findOrder(orderId);
-        if (!order.getUser().getId().equals(user.getId())) {
+        if (!order.getUser().getId().equals(user.getId()) && user.getRole() != Role.ADMIN) {
             throw new BadRequestException("You can only view your own orders");
         }
         return OrderMapper.toResponse(order);

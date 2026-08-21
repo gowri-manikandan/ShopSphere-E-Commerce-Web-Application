@@ -9,150 +9,347 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
+<body class="admin-body">
 
     <!-- Shared Navigation Bar -->
     <header id="navbar-container"></header>
 
     <div class="admin-dash-layout">
 
-        <!-- Sidebar -->
+        <!-- Sidebar Navigation -->
         <aside class="admin-sidebar">
-            <h3 class="admin-sidebar-title">Analytics</h3>
-            <nav class="admin-sidebar-nav">
-                <a href="#section-overview" class="admin-sidebar-link active">Overview</a>
-                <a href="#section-sales" class="admin-sidebar-link">Sales Report</a>
-                <a href="#section-top" class="admin-sidebar-link">Top Products</a>
-                <a href="#section-trend" class="admin-sidebar-link">Product Trend</a>
-                <a href="#section-lowstock" class="admin-sidebar-link">Low Stock</a>
-                <a href="#section-recent" class="admin-sidebar-link">Recent Orders</a>
-                <a href="admin.html" class="admin-sidebar-link external">Manage Catalog &rarr;</a>
-            </nav>
-        </aside>
-
-        <!-- Main -->
-        <main class="admin-dash-main">
-
-            <!-- Top bar: title + global search + month filter -->
-            <div class="admin-topbar">
-                <h2 class="admin-topbar-title">Super Admin Dashboard</h2>
-                <div class="admin-topbar-controls">
-                    <label class="admin-month-filter">
-                        <span>Month</span>
-                        <input type="month" id="month-picker" class="form-control">
-                    </label>
-                    <label class="admin-month-filter" style="margin-left: 16px;">
-                        <span>Category</span>
-                        <select id="category-filter" class="form-control" style="height: 42px; min-width: 150px;">
-                            <option value="">All Categories</option>
-                        </select>
-                    </label>
+            <div class="admin-sidebar-header">
+                <div class="admin-brand-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="22" height="22">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.143 2.143L15.75 6" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="admin-sidebar-title">Admin Portal</h3>
+                    <span class="admin-sidebar-subtitle">Analytics &amp; Insights</span>
                 </div>
             </div>
 
-            <!-- Overview cards -->
+            <nav class="admin-sidebar-nav">
+                <a href="#section-overview" class="admin-sidebar-link active">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="18" height="18">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                    </svg>
+                    <span>Overview &amp; KPIs</span>
+                </a>
+                <a href="#section-sales" class="admin-sidebar-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="18" height="18">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+                    </svg>
+                    <span>Sales Report</span>
+                </a>
+                <a href="#section-top" class="admin-sidebar-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="18" height="18">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.767 1.35m0 0a6.73 6.73 0 002.986 0m0 0a6.726 6.726 0 002.767-1.35M18.75 4.236c.982.143 1.954.317 2.916.52a6.003 6.003 0 01-5.395 4.972m2.479-5.492V4.5c0 2.108-.966 3.99-2.48 5.228" />
+                    </svg>
+                    <span>Top Products</span>
+                </a>
+                <a href="#section-trend" class="admin-sidebar-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="18" height="18">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5" />
+                    </svg>
+                    <span>Product Trend</span>
+                </a>
+                <a href="#section-lowstock" class="admin-sidebar-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="18" height="18">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                    <span>Low Stock</span>
+                    <span class="sidebar-badge-pill" id="sidebar-lowstock-badge">0</span>
+                </a>
+                <a href="#section-recent" class="admin-sidebar-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="18" height="18">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                    </svg>
+                    <span>Recent Orders</span>
+                </a>
+                <div class="sidebar-divider"></div>
+                <a href="admin.html" class="admin-sidebar-link external">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="18" height="18">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                    </svg>
+                    <span>Store Manager &rarr;</span>
+                </a>
+            </nav>
+
+            <div class="admin-sidebar-footer">
+                <div class="admin-user-badge">
+                    <div class="admin-avatar">SA</div>
+                    <div class="admin-user-info">
+                        <span class="admin-user-name" id="sidebar-admin-name">Super Admin</span>
+                        <span class="admin-user-role">Full Access</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-dash-main">
+
+            <!-- Top bar -->
+            <div class="admin-topbar">
+                <div class="admin-topbar-left">
+                    <div class="admin-live-status">
+                        <span class="live-pulse-dot"></span>
+                        <span>Live Store Analytics</span>
+                    </div>
+                    <h2 class="admin-topbar-title">Executive Dashboard</h2>
+                </div>
+
+                <div class="admin-topbar-controls">
+                    <div class="admin-period-shortcuts">
+                        <button type="button" class="btn-period-chip active" id="btn-period-current">This Month</button>
+                        <button type="button" class="btn-period-chip" id="btn-period-prev">Last Month</button>
+                    </div>
+
+                    <label class="admin-filter-group">
+                        <span class="admin-filter-label">Month</span>
+                        <input type="month" id="month-picker" class="admin-input-control">
+                    </label>
+
+                    <label class="admin-filter-group">
+                        <span class="admin-filter-label">Category</span>
+                        <select id="category-filter" class="admin-input-control">
+                            <option value="">All Categories</option>
+                        </select>
+                    </label>
+
+                    <button class="btn-icon-refresh" id="admin-refresh-btn" title="Refresh Dashboard Data">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" width="16" height="16">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Overview Stat Cards -->
             <section id="section-overview" class="admin-dash-section">
                 <div class="dashboard-stats-grid">
-                    <div class="stat-card revenue">
+                    <!-- Stat Card 1 -->
+                    <div class="stat-card stat-alltime">
+                        <div class="stat-card-top">
+                            <div class="stat-icon-wrap icon-alltime">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="22" height="22">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                                </svg>
+                            </div>
+                            <span class="stat-badge-pill">Lifetime</span>
+                        </div>
                         <span class="stat-label">All-Time Revenue</span>
                         <span class="stat-value" id="ov-alltime-revenue">₹0.00</span>
+                        <span class="stat-subtext">Store gross cumulative sales</span>
                     </div>
-                    <div class="stat-card">
-                        <span class="stat-label">Revenue (Month)</span>
+
+                    <!-- Stat Card 2 -->
+                    <div class="stat-card stat-period">
+                        <div class="stat-card-top">
+                            <div class="stat-icon-wrap icon-period">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="22" height="22">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <span class="stat-badge-pill trend-up" id="stat-month-comparison">Loading</span>
+                        </div>
+                        <span class="stat-label">Monthly Revenue</span>
                         <span class="stat-value" id="ov-period-revenue">₹0.00</span>
+                        <span class="stat-subtext" id="stat-period-sub">For selected month</span>
                     </div>
-                    <div class="stat-card info">
+
+                    <!-- Stat Card 3 -->
+                    <div class="stat-card stat-orders">
+                        <div class="stat-card-top">
+                            <div class="stat-icon-wrap icon-orders">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="22" height="22">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                                </svg>
+                            </div>
+                            <span class="stat-badge-pill">Orders</span>
+                        </div>
                         <span class="stat-label">Orders (Month)</span>
                         <span class="stat-value" id="ov-period-orders">0</span>
+                        <span class="stat-subtext">Total client purchases</span>
                     </div>
-                    <div class="stat-card delivered">
+
+                    <!-- Stat Card 4 -->
+                    <div class="stat-card stat-aov">
+                        <div class="stat-card-top">
+                            <div class="stat-icon-wrap icon-aov">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="22" height="22">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+                                </svg>
+                            </div>
+                            <span class="stat-badge-pill">Average</span>
+                        </div>
                         <span class="stat-label">Avg Order Value</span>
                         <span class="stat-value" id="ov-avg-order">₹0.00</span>
+                        <span class="stat-subtext">Revenue per order</span>
                     </div>
-                    <div class="stat-card users">
+
+                    <!-- Stat Card 5 -->
+                    <div class="stat-card stat-customers">
+                        <div class="stat-card-top">
+                            <div class="stat-icon-wrap icon-customers">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="22" height="22">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                                </svg>
+                            </div>
+                            <span class="stat-badge-pill">Registered</span>
+                        </div>
                         <span class="stat-label">Total Customers</span>
                         <span class="stat-value" id="ov-total-customers">0</span>
+                        <span class="stat-subtext">Active shopper base</span>
                     </div>
                 </div>
             </section>
 
-            <!-- Sales report -->
+            <!-- Sales Report Chart Section -->
             <section id="section-sales" class="admin-dash-section">
-                <div class="section-header">
-                    <h3 class="section-title">Sales Report
-                        <span id="sales-comparison" class="badge badge-info" style="margin-left:8px;"></span>
-                    </h3>
-                    <button class="btn btn-secondary btn-sm" id="export-csv-btn">Export CSV</button>
-                    <button class="btn btn-secondary btn-sm" id="export-pdf-btn" style="margin-left:8px;">Export PDF</button>
-                </div>
-                <div class="chart-card">
-                    <div class="chart-state" id="sales-state">Loading…</div>
-                    <div class="chart-canvas-wrap" style="position:relative; height:300px; width:100%;">
-                        <canvas id="chart-sales"></canvas>
+                <div class="admin-section-card">
+                    <div class="admin-section-header">
+                        <div class="section-title-wrap">
+                            <h3 class="admin-section-title">Sales &amp; Revenue Velocity</h3>
+                            <span id="sales-comparison" class="badge badge-info">Analyzing performance…</span>
+                        </div>
+                        <div class="admin-export-actions">
+                            <button class="btn-action-export" id="export-csv-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="15" height="15">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                </svg>
+                                Export CSV
+                            </button>
+                            <button class="btn-action-export" id="export-pdf-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="15" height="15">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                </svg>
+                                Export PDF
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </section>
-
-            <!-- Top products -->
-            <section id="section-top" class="admin-dash-section">
-                <div class="section-header">
-                    <h3 class="section-title">Top Selling Products</h3>
-                    <div class="admin-toggle" id="top-sort-toggle">
-                        <button class="admin-toggle-btn active" data-sort="units">By Units</button>
-                        <button class="admin-toggle-btn" data-sort="revenue">By Revenue</button>
-                    </div>
-                </div>
-                <div class="dashboard-charts-grid">
-                    <div class="chart-card">
-                        <div class="chart-state" id="top-state">Loading…</div>
+                    <div class="chart-container-card">
+                        <div class="chart-state" id="sales-state">Loading sales chart…</div>
                         <div class="chart-canvas-wrap" style="position:relative; height:320px; width:100%;">
-                            <canvas id="chart-top"></canvas>
-                        </div>
-                    </div>
-                    <div class="chart-card">
-                        <div class="table-responsive">
-                            <table class="admin-table">
-                                <thead>
-                                    <tr><th>#</th><th>Product</th><th>Units</th><th>Revenue</th></tr>
-                                </thead>
-                                <tbody id="top-products-tbody"></tbody>
-                            </table>
+                            <canvas id="chart-sales"></canvas>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Product sales trend -->
+            <!-- Top Products Section -->
+            <section id="section-top" class="admin-dash-section">
+                <div class="admin-section-card">
+                    <div class="admin-section-header">
+                        <div class="section-title-wrap">
+                            <h3 class="admin-section-title">Top Selling Products</h3>
+                            <span class="admin-section-subtitle">Ranked product sales performance</span>
+                        </div>
+                        <div class="admin-toggle-group" id="top-sort-toggle">
+                            <button type="button" class="admin-toggle-btn active" data-sort="units">By Units</button>
+                            <button type="button" class="admin-toggle-btn" data-sort="revenue">By Revenue</button>
+                        </div>
+                    </div>
+
+                    <div class="admin-two-col-grid">
+                        <div class="chart-card-inner">
+                            <div class="chart-state" id="top-state">Loading top products…</div>
+                            <div class="chart-canvas-wrap" style="position:relative; height:340px; width:100%;">
+                                <canvas id="chart-top"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="table-card-inner">
+                            <div class="table-responsive">
+                                <table class="admin-modern-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Rank</th>
+                                            <th>Product Name</th>
+                                            <th class="text-right">Units</th>
+                                            <th class="text-right">Revenue</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="top-products-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Product Sales Trend Section -->
             <section id="section-trend" class="admin-dash-section">
-                <div class="section-header">
-                    <h3 class="section-title">Product Sales Trend</h3>
-                    <div class="admin-search-wrap">
-                        <input type="search" id="trend-search" class="form-control"
-                               placeholder="Search a product…" autocomplete="off">
-                        <div id="trend-results" class="admin-search-results hidden"></div>
+                <div class="admin-section-card">
+                    <div class="admin-section-header">
+                        <div class="section-title-wrap">
+                            <h3 class="admin-section-title">Product Sales Trajectory</h3>
+                            <span class="admin-section-subtitle">12-Month historical trend deep-dive</span>
+                        </div>
+
+                        <div class="admin-search-wrapper">
+                            <div class="admin-search-box">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.637 10.637z" />
+                                </svg>
+                                <input type="search" id="trend-search" class="admin-search-input"
+                                       placeholder="Search product name…" autocomplete="off">
+                            </div>
+                            <div id="trend-results" class="admin-search-dropdown hidden"></div>
+                        </div>
                     </div>
-                </div>
-                <div class="chart-card">
-                    <div class="trend-summary" id="trend-summary" style="margin-bottom:12px; color:var(--text-muted);">
-                        Select a product to see its last-12-months trend.
+
+                    <!-- Quick Trend Suggestion Chips -->
+                    <div class="trend-quick-chips" id="trend-chips-container">
+                        <span class="chip-label">Quick select:</span>
+                        <!-- Injected via JS -->
                     </div>
-                    <div class="chart-state hidden" id="trend-state"></div>
-                    <div class="chart-canvas-wrap" style="position:relative; height:300px; width:100%;">
-                        <canvas id="chart-trend"></canvas>
+
+                    <div class="trend-summary-bar" id="trend-summary">
+                        Select a product above to analyze its sales trend across the last 12 months.
+                    </div>
+
+                    <div class="chart-card-inner" style="margin-top: 16px;">
+                        <div class="chart-state hidden" id="trend-state"></div>
+                        <div class="chart-canvas-wrap" style="position:relative; height:300px; width:100%;">
+                            <canvas id="chart-trend"></canvas>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Low stock -->
+            <!-- Low Stock Alert Section -->
             <section id="section-lowstock" class="admin-dash-section">
-                <div class="section-header">
-                    <h3 class="section-title">Low-Stock Alerts</h3>
-                </div>
-                <div class="chart-card">
+                <div class="admin-section-card">
+                    <div class="admin-section-header">
+                        <div class="section-title-wrap">
+                            <div class="warning-title-row">
+                                <div class="warning-icon-badge">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" width="18" height="18">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                    </svg>
+                                </div>
+                                <h3 class="admin-section-title">Low-Stock &amp; Inventory Alerts</h3>
+                            </div>
+                            <span class="admin-section-subtitle">Items requiring replenishment or supplier purchase order</span>
+                        </div>
+                        <a href="admin.html" class="btn-action-export">
+                            Manage Inventory &rarr;
+                        </a>
+                    </div>
+
                     <div class="table-responsive">
-                        <table class="admin-table">
+                        <table class="admin-modern-table">
                             <thead>
-                                <tr><th>Product</th><th>Stock</th><th>Price</th><th>Status</th></tr>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Stock Level</th>
+                                    <th>Unit Price</th>
+                                    <th>Inventory Status</th>
+                                    <th class="text-right">Action</th>
+                                </tr>
                             </thead>
                             <tbody id="lowstock-tbody"></tbody>
                         </table>
@@ -160,36 +357,58 @@
                 </div>
             </section>
 
-            <!-- Recent orders -->
+            <!-- Recent Orders Section -->
             <section id="section-recent" class="admin-dash-section">
-                <div class="section-header">
-                    <h3 class="section-title">Recent Orders</h3>
-                    <label class="admin-month-filter">
-                        <span>Status</span>
-                        <select id="recent-status-filter" class="form-control">
-                            <option value="">All</option>
-                            <option value="PLACED">Placed</option>
-                            <option value="CONFIRMED">Confirmed</option>
-                            <option value="PACKED">Packed</option>
-                            <option value="SHIPPED">Shipped</option>
-                            <option value="DELIVERED">Delivered</option>
-                            <option value="CANCELLED">Cancelled</option>
-                        </select>
-                    </label>
-                </div>
-                <div class="chart-card">
+                <div class="admin-section-card">
+                    <div class="admin-section-header">
+                        <div class="section-title-wrap">
+                            <h3 class="admin-section-title">Recent Client Orders</h3>
+                            <span class="admin-section-subtitle">Live order feed and fulfillment pipeline</span>
+                        </div>
+                        <div class="admin-filter-group">
+                            <span class="admin-filter-label">Status</span>
+                            <select id="recent-status-filter" class="admin-input-control">
+                                <option value="">All Orders</option>
+                                <option value="PLACED">Placed</option>
+                                <option value="CONFIRMED">Confirmed</option>
+                                <option value="PACKED">Packed</option>
+                                <option value="SHIPPED">Shipped</option>
+                                <option value="DELIVERED">Delivered</option>
+                                <option value="CANCELLED">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
-                        <table class="admin-table">
+                        <table class="admin-modern-table">
                             <thead>
-                                <tr><th>Order</th><th>Date</th><th>Total</th><th>Payment</th><th>Status</th></tr>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Order Date</th>
+                                    <th>Total Amount</th>
+                                    <th>Payment Status</th>
+                                    <th>Fulfillment Status</th>
+                                    <th class="text-right">Actions</th>
+                                </tr>
                             </thead>
                             <tbody id="recent-orders-tbody"></tbody>
                         </table>
                     </div>
-                    <div class="admin-pagination">
-                        <button class="btn btn-secondary btn-sm" id="recent-prev" disabled>Prev</button>
-                        <span id="recent-page-info">Page 1</span>
-                        <button class="btn btn-secondary btn-sm" id="recent-next" disabled>Next</button>
+
+                    <div class="admin-pagination-bar">
+                        <button class="btn-page-arrow" id="recent-prev" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" width="14" height="14">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                            </svg>
+                            Prev
+                        </button>
+                        <span class="page-indicator" id="recent-page-info">Page 1 of 1</span>
+                        <button class="btn-page-arrow" id="recent-next" disabled>
+                            Next
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" width="14" height="14">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </section>
@@ -197,6 +416,7 @@
         </main>
     </div>
 
-    <script type="module" src="js/admin-dashboard.js?v=1"></script>
+    <!-- Logic Script -->
+    <script type="module" src="js/admin-dashboard.js"></script>
 </body>
 </html>

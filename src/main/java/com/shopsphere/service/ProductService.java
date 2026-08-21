@@ -128,9 +128,18 @@ public class ProductService {
 
     @Transactional
     public ProductResponse restore(Long id) {
+        return restore(id, null);
+    }
+
+    @Transactional
+    public ProductResponse restore(Long id, Long categoryId) {
         Product product = findProduct(id);
         product.setDeleted(false);
         product.setDeletedAt(null);
+        if (categoryId != null) {
+            Category category = findCategory(categoryId);
+            product.setCategory(category);
+        }
         Product saved = productRepository.save(product);
         eventPublisher.publishEvent(new ProductChangedEvent(saved.getId()));
         return toResponseWithRating(saved);

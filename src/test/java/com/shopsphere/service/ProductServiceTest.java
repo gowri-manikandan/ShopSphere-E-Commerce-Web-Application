@@ -1,6 +1,7 @@
 package com.shopsphere.service;
 
 import com.shopsphere.dto.ProductResponse;
+import com.shopsphere.entity.Category;
 import com.shopsphere.entity.Product;
 import com.shopsphere.exception.ResourceNotFoundException;
 import com.shopsphere.repository.*;
@@ -83,6 +84,30 @@ class ProductServiceTest {
         ProductResponse res = productService.restore(1L);
 
         assertThat(res.isDeleted()).isFalse();
+        assertThat(p.isDeleted()).isFalse();
+        assertThat(p.getDeletedAt()).isNull();
+        verify(productRepository).save(p);
+    }
+
+    @Test
+    void restore_withCategoryId_updatesCategoryAndRestores() {
+        Product p = Product.builder()
+                .id(1L)
+                .name("Widget")
+                .price(new BigDecimal("10.00"))
+                .stockQuantity(100)
+                .deleted(true)
+                .deletedAt(java.time.LocalDateTime.now())
+                .build();
+        Category cat = Category.builder().id(5L).name("Textiles").build();
+        when(productRepository.findById(1L)).thenReturn(Optional.of(p));
+        when(categoryRepository.findById(5L)).thenReturn(Optional.of(cat));
+        when(productRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        ProductResponse res = productService.restore(1L, 5L);
+
+        assertThat(res.isDeleted()).isFalse();
+        assertThat(p.getCategory()).isEqualTo(cat);
         assertThat(p.isDeleted()).isFalse();
         assertThat(p.getDeletedAt()).isNull();
         verify(productRepository).save(p);

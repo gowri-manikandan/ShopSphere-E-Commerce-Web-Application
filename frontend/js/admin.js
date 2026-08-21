@@ -168,10 +168,18 @@ function openProductModal(product = null) {
     
     let tempAdditionalImages = product ? [...(product.additionalImages || [])] : [];
 
-    // Category select options
-    const categoryOptions = categoriesCache.map(cat => 
-        `<option value="${cat.id}" ${product && product.categoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`
-    ).join('');
+    // Category select options (exclude system Uncategorized category for new/updated products)
+    const validCategories = (categoriesCache || []).filter(cat => 
+        cat && cat.name && cat.name.trim().toLowerCase() !== 'uncategorized'
+    );
+
+    const isCurrentCatValid = validCategories.some(c => c.id === product?.categoryId);
+
+    const categoryOptions = validCategories.length === 0 
+        ? '<option value="" disabled selected>No active categories. Create a category first.</option>'
+        : validCategories.map(cat => 
+            `<option value="${cat.id}" ${product && product.categoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`
+          ).join('');
 
     const formHtml = `
         <form id="product-modal-form" style="display:flex; flex-direction:column; gap:16px;">
@@ -199,7 +207,7 @@ function openProductModal(product = null) {
             <div class="form-group">
                 <label for="prod-cat" class="form-label">Category</label>
                 <select id="prod-cat" class="form-control" required style="height: 42px;">
-                    <option value="" disabled ${!product ? 'selected' : ''}>Select Category</option>
+                    <option value="" disabled ${!isCurrentCatValid ? 'selected' : ''}>Select Category</option>
                     ${categoryOptions}
                 </select>
             </div>
@@ -590,24 +598,65 @@ function handleDeleteProduct(product) {
     );
 }
 
-// Restore product
-function handleRestoreProduct(product) {
-    showConfirm(
-        'Restore Product',
-        `Are you sure you want to restore the product "${product.name}"?`,
-        async () => {
+// Restore product - ask user to select/confirm the category
+async function handleRestoreProduct(product) {
+    await loadCategoriesCache();
+    const validCategories = (categoriesCache || []).filter(cat =>
+        cat && cat.name && cat.name.trim().toLowerCase() !== 'uncategorized'
+    );
+
+    if (validCategories.length === 0) {
+        showToast('Please create at least one category before restoring products.', 'error');
+        return;
+    }
+
+    const isCurrentCatValid = validCategories.some(c => c.id === product.categoryId);
+    const categoryOptions = validCategories.map(cat =>
+        `<option value="${cat.id}" ${isCurrentCatValid && product.categoryId === cat.id ? 'selected' : ''}>${cat.name}</option>`
+    ).join('');
+
+    const contentHtml = `
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <p style="color:var(--text-secondary); margin:0; line-height:1.5;">
+                Select a category to assign to <strong>${product.name}</strong> upon reactivating:
+            </p>
+            <div class="form-group">
+                <label for="restore-prod-cat" class="form-label" style="font-weight:600;">Category</label>
+                <select id="restore-prod-cat" class="form-control" required style="height:42px;">
+                    <option value="" disabled ${!isCurrentCatValid ? 'selected' : ''}>-- Select Category --</option>
+                    ${categoryOptions}
+                </select>
+            </div>
+        </div>
+    `;
+
+    showModal({
+        title: 'Reactivate Product',
+        contentHtml,
+        confirmText: 'Restore Product',
+        cancelText: 'Cancel',
+        onConfirm: async (modalEl) => {
+            const selectEl = modalEl.querySelector('#restore-prod-cat');
+            const selectedCatId = selectEl?.value;
+            if (!selectedCatId) {
+                showToast('Please select a category for this product.', 'error');
+                return false;
+            }
+
             try {
                 showLoader();
-                await api.put(`/api/products/${product.id}/restore`, {});
-                showToast('Product restored successfully.', 'success');
+                await api.put(`/api/products/${product.id}/restore?categoryId=${selectedCatId}`, {});
+                showToast(`Product "${product.name}" restored successfully.`, 'success');
                 await loadAdminProducts();
+                return true;
             } catch (err) {
                 showToast(err.message || 'Failed to restore product.', 'error');
+                return false;
             } finally {
                 hideLoader();
             }
         }
-    );
+    });
 }
 
 // ==========================================
@@ -628,21 +677,24 @@ async function loadAdminCategories() {
         categoriesCache = categories;
 
         categories.forEach(cat => {
+            const isUncat = cat.name && cat.name.trim().toLowerCase() === 'uncategorized';
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="font-family:monospace; font-weight:700;">#${cat.id}</td>
-                <td style="font-weight:600;">${cat.name}</td>
+                <td style="font-weight:600;">${cat.name} ${isUncat ? '<span class="badge badge-warning" style="font-size:10px; margin-left:6px;">System Default</span>' : ''}</td>
                 <td style="color:var(--text-muted);">${cat.description || 'No description'}</td>
                 <td>
                     <div class="admin-actions-cell">
                         <button class="btn btn-secondary btn-sm edit-cat-btn" data-id="${cat.id}">Edit</button>
-                        <button class="btn btn-danger btn-sm delete-cat-btn" data-id="${cat.id}">Delete</button>
+                        ${isUncat ? '<button class="btn btn-secondary btn-sm" disabled title="System category cannot be deleted" style="opacity:0.6; cursor:not-allowed;">Locked</button>' : `<button class="btn btn-danger btn-sm delete-cat-btn" data-id="${cat.id}">Delete</button>`}
                     </div>
                 </td>
             `;
 
             tr.querySelector('.edit-cat-btn').addEventListener('click', () => openCategoryModal(cat));
-            tr.querySelector('.delete-cat-btn').addEventListener('click', () => handleDeleteCategory(cat));
+            if (!isUncat) {
+                tr.querySelector('.delete-cat-btn').addEventListener('click', () => handleDeleteCategory(cat));
+            }
 
             categoriesTbody.appendChild(tr);
         });
