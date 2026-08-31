@@ -90,7 +90,7 @@ export function renderNavbar() {
             <div class="container announcement-inner">
                 <div class="announcement-left">
                     <span class="ann-emoji">🚚</span>
-                    <span>Free Shipping on orders above ₹999</span>
+                    <span>Free Shipping on orders above ₹900</span>
                 </div>
                 <div class="announcement-center">
                     <span>✨ Quality You Trust, Style You Love</span>

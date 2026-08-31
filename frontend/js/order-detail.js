@@ -96,6 +96,8 @@ function render(o) {
     const fallbackImage = 'data:image/svg+xml;utf8,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="%23cbd5e1" width="100%" height="100%"%3E%3Crect width="100%" height="100%" fill="%23f1f5f9"/%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z"/%3E%3C/svg%3E';
     const itemCount = (o.items || []).reduce((a, i) => a + i.quantity, 0);
     const subtotal = (o.items || []).reduce((a, i) => a + Number(i.subtotal), 0);
+    const totalAmount = Number(o.totalAmount || subtotal);
+    const shippingFee = Number(o.shippingFee != null ? o.shippingFee : (totalAmount > subtotal ? (totalAmount - subtotal) : (subtotal >= 900 ? 0 : 150)));
     const addr = o.shippingAddress;
     const paid = o.paymentStatus === 'SUCCESS';
     const estDelivery = o.estimatedDeliveryDate
@@ -179,7 +181,7 @@ function render(o) {
                     </div>
                     <div class="od-total-row">
                         <span>Shipping Charge</span>
-                        <span class="text-free">FREE</span>
+                        <span>${shippingFee === 0 ? '<span class="text-free">FREE</span>' : inr(shippingFee)}</span>
                     </div>
                     <div class="od-total-row">
                         <span>Discount</span>

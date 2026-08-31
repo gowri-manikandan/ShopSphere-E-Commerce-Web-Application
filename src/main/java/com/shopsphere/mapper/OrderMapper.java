@@ -18,9 +18,19 @@ public class OrderMapper {
 
         Payment payment = order.getPayment();
 
+        java.math.BigDecimal subtotal = items.stream()
+                .map(OrderItemResponse::getSubtotal)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        java.math.BigDecimal shippingFee = order.getTotalAmount() != null && order.getTotalAmount().compareTo(subtotal) > 0
+                ? order.getTotalAmount().subtract(subtotal)
+                : (subtotal.compareTo(new java.math.BigDecimal("900.00")) >= 0 ? java.math.BigDecimal.ZERO : new java.math.BigDecimal("150.00"));
+
         return OrderResponse.builder()
                 .orderId(order.getId())
                 .totalAmount(order.getTotalAmount())
+                .subtotal(subtotal)
+                .shippingFee(shippingFee)
                 .status(order.getStatus().name())
                 .orderDate(order.getOrderDate())
                 .items(items)

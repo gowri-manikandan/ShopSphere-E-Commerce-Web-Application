@@ -83,7 +83,7 @@ class OrderServiceTest {
         when(paymentService.createOrder(any())).thenReturn(razorpayOrderId);
         when(paymentService.getKeyId()).thenReturn("rzp_test_key");
         when(paymentService.getCurrency()).thenReturn("INR");
-        when(paymentService.toMinorUnits(any())).thenReturn(20000L);
+        when(paymentService.toMinorUnits(any())).thenReturn(35000L);
     }
 
     @Test
@@ -103,7 +103,7 @@ class OrderServiceTest {
         ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
         verify(orderRepository).save(orderCaptor.capture());
         Order saved = orderCaptor.getValue();
-        assertThat(saved.getTotalAmount()).isEqualByComparingTo("200.00"); // 100 * 2
+        assertThat(saved.getTotalAmount()).isEqualByComparingTo("350.00"); // 100 * 2 + 150 shipping (< 900)
         assertThat(saved.getStatus()).isEqualTo(OrderStatus.PLACED);
         assertThat(saved.getItems()).hasSize(1);
         // Online payment stays PENDING until the callback/webhook confirms it (§9).
@@ -118,8 +118,40 @@ class OrderServiceTest {
         assertThat(response.getOrder().getPaymentStatus()).isEqualTo("PENDING");
         assertThat(response.getRazorpayOrderId()).isEqualTo("order_test_123");
         assertThat(response.getRazorpayKeyId()).isEqualTo("rzp_test_key");
-        assertThat(response.getAmountInPaise()).isEqualTo(20000L);
+        assertThat(response.getAmountInPaise()).isEqualTo(35000L);
         assertThat(response.getCurrency()).isEqualTo("INR");
+    }
+
+    @Test
+    void doCheckout_subtotalUnder900_adds150ShippingFee() {
+        Product p = product(10L, "500.00", 50);
+        when(securityUtils.getCurrentUser()).thenReturn(user);
+        when(cartItemRepository.findByUserId(1L)).thenReturn(List.of(cartItem(p, 1)));
+        when(addressRepository.findById(5L)).thenReturn(Optional.of(address));
+        when(productRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(paymentService.isRazorpayEnabled()).thenReturn(false);
+
+        CheckoutResponse response = orderService.doCheckout(request("CARD"));
+        assertThat(response.getOrder().getTotalAmount()).isEqualByComparingTo("650.00"); // 500 + 150
+        assertThat(response.getOrder().getSubtotal()).isEqualByComparingTo("500.00");
+        assertThat(response.getOrder().getShippingFee()).isEqualByComparingTo("150.00");
+    }
+
+    @Test
+    void doCheckout_subtotal900OrAbove_freeShipping() {
+        Product p = product(10L, "900.00", 50);
+        when(securityUtils.getCurrentUser()).thenReturn(user);
+        when(cartItemRepository.findByUserId(1L)).thenReturn(List.of(cartItem(p, 1)));
+        when(addressRepository.findById(5L)).thenReturn(Optional.of(address));
+        when(productRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(paymentService.isRazorpayEnabled()).thenReturn(false);
+
+        CheckoutResponse response = orderService.doCheckout(request("CARD"));
+        assertThat(response.getOrder().getTotalAmount()).isEqualByComparingTo("900.00"); // 900 + 0
+        assertThat(response.getOrder().getSubtotal()).isEqualByComparingTo("900.00");
+        assertThat(response.getOrder().getShippingFee()).isEqualByComparingTo("0.00");
     }
 
     @Test

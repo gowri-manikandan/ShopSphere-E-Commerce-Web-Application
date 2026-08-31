@@ -33,6 +33,16 @@ public class OrderService {
     // surface a 409 only after exhausting attempts.
     private static final int MAX_STOCK_CONFLICT_ATTEMPTS = 3;
 
+    public static final BigDecimal FREE_SHIPPING_THRESHOLD = new BigDecimal("900.00");
+    public static final BigDecimal STANDARD_SHIPPING_FEE = new BigDecimal("150.00");
+
+    public static BigDecimal calculateShippingFee(BigDecimal subtotal) {
+        if (subtotal == null || subtotal.compareTo(FREE_SHIPPING_THRESHOLD) >= 0) {
+            return BigDecimal.ZERO;
+        }
+        return STANDARD_SHIPPING_FEE;
+    }
+
     private final OrderRepository orderRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
@@ -106,7 +116,7 @@ public class OrderService {
                 .totalAmount(BigDecimal.ZERO)
                 .build();
 
-        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal itemsSubtotal = BigDecimal.ZERO;
 
         for (CartItem cartItem : cartItems) {
             Product product = cartItem.getProduct();
@@ -128,8 +138,11 @@ public class OrderService {
                     .build();
             order.addItem(orderItem);
 
-            total = total.add(product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
+            itemsSubtotal = itemsSubtotal.add(product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
         }
+
+        BigDecimal shippingFee = calculateShippingFee(itemsSubtotal);
+        BigDecimal total = itemsSubtotal.add(shippingFee);
 
         order.setTotalAmount(total);
 

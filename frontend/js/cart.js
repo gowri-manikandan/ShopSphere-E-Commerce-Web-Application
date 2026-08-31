@@ -10,6 +10,7 @@ const clearCartBtn = document.getElementById('clear-cart-btn');
 
 const summaryItemsCount = document.getElementById('summary-items-count');
 const summarySubtotalVal = document.getElementById('summary-subtotal-val');
+const summaryShippingVal = document.getElementById('summary-shipping-val');
 const summaryGrandTotalVal = document.getElementById('summary-grand-total-val');
 const proceedCheckoutBtn = document.getElementById('proceed-checkout-btn');
 
@@ -62,10 +63,24 @@ async function loadCart() {
         cartContentWrapper.style.display = 'grid';
         emptyCartState.style.display = 'none';
 
+        // Calculate shipping: 150 for under 900, free for 900 and above
+        const subtotal = Number(cartData.grandTotal || 0);
+        const shippingFee = subtotal >= 900 ? 0 : 150;
+        const grandTotal = subtotal + shippingFee;
+
         // Render summary totals
         summaryItemsCount.textContent = `Subtotal (${cartData.totalItems} ${cartData.totalItems === 1 ? 'item' : 'items'})`;
-        summarySubtotalVal.textContent = `₹${cartData.grandTotal.toFixed(2)}`;
-        summaryGrandTotalVal.textContent = `₹${cartData.grandTotal.toFixed(2)}`;
+        summarySubtotalVal.textContent = `₹${subtotal.toFixed(2)}`;
+        if (summaryShippingVal) {
+            if (shippingFee === 0) {
+                summaryShippingVal.textContent = 'FREE';
+                summaryShippingVal.style.color = 'var(--success)';
+            } else {
+                summaryShippingVal.textContent = `₹${shippingFee.toFixed(2)}`;
+                summaryShippingVal.style.color = 'var(--text-main)';
+            }
+        }
+        summaryGrandTotalVal.textContent = `₹${grandTotal.toFixed(2)}`;
 
         // Render item rows
         cartItemsContainer.innerHTML = '';

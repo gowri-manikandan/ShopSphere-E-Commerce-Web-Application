@@ -13,6 +13,7 @@ const addAddressBtn = document.getElementById('add-address-btn');
 const checkoutItemsPreview = document.getElementById('checkout-items-preview');
 const checkoutItemsCount = document.getElementById('checkout-items-count');
 const checkoutSubtotalVal = document.getElementById('checkout-subtotal-val');
+const checkoutShippingVal = document.getElementById('checkout-shipping-val');
 const checkoutGrandTotalVal = document.getElementById('checkout-grand-total-val');
 const placeOrderBtn = document.getElementById('place-order-btn');
 const paymentOptions = document.querySelectorAll('.payment-option');
@@ -66,10 +67,24 @@ async function loadCheckoutSummary() {
             checkoutItemsPreview.appendChild(previewRow);
         });
 
+        // Calculate shipping: 150 for under 900, free for 900 and above
+        const subtotal = Number(cartData.grandTotal || 0);
+        const shippingFee = subtotal >= 900 ? 0 : 150;
+        const grandTotal = subtotal + shippingFee;
+
         // Update totals
         checkoutItemsCount.textContent = `Subtotal (${cartData.totalItems} ${cartData.totalItems === 1 ? 'item' : 'items'})`;
-        checkoutSubtotalVal.textContent = `₹${cartData.grandTotal.toFixed(2)}`;
-        checkoutGrandTotalVal.textContent = `₹${cartData.grandTotal.toFixed(2)}`;
+        checkoutSubtotalVal.textContent = `₹${subtotal.toFixed(2)}`;
+        if (checkoutShippingVal) {
+            if (shippingFee === 0) {
+                checkoutShippingVal.textContent = 'FREE';
+                checkoutShippingVal.style.color = 'var(--success)';
+            } else {
+                checkoutShippingVal.textContent = `₹${shippingFee.toFixed(2)}`;
+                checkoutShippingVal.style.color = 'var(--text-main)';
+            }
+        }
+        checkoutGrandTotalVal.textContent = `₹${grandTotal.toFixed(2)}`;
 
     } catch (err) {
         showToast(err.message || 'Failed to load order summary.', 'error');
