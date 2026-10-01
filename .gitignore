@@ -28,4 +28,6 @@ Thumbs.db
 ### Logs ###
 *.log
 
+.env.env.aiven.bak
 .env
+.env.aiven.bak

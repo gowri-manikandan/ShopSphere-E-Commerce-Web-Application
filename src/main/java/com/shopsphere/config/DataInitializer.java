@@ -74,11 +74,9 @@ public class DataInitializer implements CommandLineRunner {
                 .description("Noise-cancelling over-ear headphones")
                 .price(new BigDecimal("2499.00"))
                 .stockQuantity(50)
-                .imageUrl("https://via.placeholder.com/300?text=Headphones")
+                .imageUrl("https://res.cloudinary.com/y8kctgbh/image/upload/v1790783119/shopsphere/products/sowccem8s0qwvmawbeqj.jpg")
                 .additionalImages(java.util.Arrays.asList(
-                    "https://via.placeholder.com/300?text=Headphones+1",
-                    "https://via.placeholder.com/300?text=Headphones+2",
-                    "https://via.placeholder.com/300?text=Headphones+3"
+                    "https://res.cloudinary.com/y8kctgbh/image/upload/v1790783119/shopsphere/products/sowccem8s0qwvmawbeqj.jpg"
                 ))
                 .category(electronics)
                 .build());
@@ -88,10 +86,9 @@ public class DataInitializer implements CommandLineRunner {
                 .description("6.5 inch display, 128GB storage")
                 .price(new BigDecimal("18999.00"))
                 .stockQuantity(30)
-                .imageUrl("https://via.placeholder.com/300?text=Smartphone")
+                .imageUrl("https://res.cloudinary.com/y8kctgbh/image/upload/v1790783122/shopsphere/products/iojfjbbqfqjdbqd6yzw5.jpg")
                 .additionalImages(java.util.Arrays.asList(
-                    "https://via.placeholder.com/300?text=Smartphone+1",
-                    "https://via.placeholder.com/300?text=Smartphone+2"
+                    "https://res.cloudinary.com/y8kctgbh/image/upload/v1790783122/shopsphere/products/iojfjbbqfqjdbqd6yzw5.jpg"
                 ))
                 .category(electronics)
                 .build());
@@ -101,10 +98,9 @@ public class DataInitializer implements CommandLineRunner {
                 .description("100% cotton, regular fit")
                 .price(new BigDecimal("499.00"))
                 .stockQuantity(100)
-                .imageUrl("https://via.placeholder.com/300?text=T-Shirt")
+                .imageUrl("https://res.cloudinary.com/y8kctgbh/image/upload/v1790783127/shopsphere/products/wsnny5s16mrqpq9cqb3n.jpg")
                 .additionalImages(java.util.Arrays.asList(
-                    "https://via.placeholder.com/300?text=T-Shirt+Front",
-                    "https://via.placeholder.com/300?text=T-Shirt+Back"
+                    "https://res.cloudinary.com/y8kctgbh/image/upload/v1790783127/shopsphere/products/wsnny5s16mrqpq9cqb3n.jpg"
                 ))
                 .category(fashion)
                 .build());
@@ -114,10 +110,9 @@ public class DataInitializer implements CommandLineRunner {
                 .description("Classic software engineering book")
                 .price(new BigDecimal("799.00"))
                 .stockQuantity(40)
-                .imageUrl("https://via.placeholder.com/300?text=Book")
+                .imageUrl("https://res.cloudinary.com/y8kctgbh/image/upload/v1790783132/shopsphere/products/nut4duhwvzxef6ngrztq.jpg")
                 .additionalImages(java.util.Arrays.asList(
-                    "https://via.placeholder.com/300?text=Book+Cover",
-                    "https://via.placeholder.com/300?text=Book+Inside"
+                    "https://res.cloudinary.com/y8kctgbh/image/upload/v1790783132/shopsphere/products/nut4duhwvzxef6ngrztq.jpg"
                 ))
                 .category(books)
                 .build());
